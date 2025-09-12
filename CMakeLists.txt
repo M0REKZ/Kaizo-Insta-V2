@@ -260,6 +260,7 @@ find_package(PythonInterp)
 find_package(SDL)
 find_package(Threads)
 find_package(Wavpack)
+find_package(Curl)
 
 
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
@@ -305,6 +306,7 @@ show_dependency_status("PythonInterp" PYTHONINTERP)
 show_dependency_status("SDL" SDL)
 show_dependency_status("Wavpack" WAVPACK)
 show_dependency_status("Zlib" ZLIB)
+show_dependency_status("Curl" CURL)
 
 if(NOT(PYTHONINTERP_FOUND))
   message(SEND_ERROR "You must install Python to compile Teeworlds")
@@ -345,7 +347,7 @@ endif()
 # DEPENDENCY COMPILATION
 ########################################################################
 
-set_glob(DEP_MD5_SRC GLOB src/engine/external/md5 md5.c md5.h)
+set_glob(DEP_MD5_SRC GLOB src/engine/external/md5 md5.cpp md5.h)
 add_library(md5 EXCLUDE_FROM_ALL OBJECT ${DEP_MD5_SRC})
 
 list(APPEND TARGETS_DEP md5)
@@ -434,7 +436,12 @@ generate_source("src/game/generated/server_data.h" "server_content_header")
 set_glob(BASE GLOB_RECURSE src/base
   detect.h
   math.h
-  system.c
+  hash.cpp
+  hash_bundled.cpp
+  hash_ctxt.h
+  hash_openssl.cpp
+  hash_libtomcrypt.cpp
+  system.cpp
   system.h
   tl/algorithm.h
   tl/allocator.h
@@ -466,6 +473,8 @@ set_glob(ENGINE_INTERFACE GLOB src/engine
   sound.h
   storage.h
   textrender.h
+  external/json-parser/json.c
+  external/json-parser/json.h
 )
 set_glob(ENGINE_SHARED GLOB src/engine/shared
   compression.cpp
@@ -484,16 +493,19 @@ set_glob(ENGINE_SHARED GLOB src/engine/shared
   engine.cpp
   filecollection.cpp
   filecollection.h
+  global_uuid_manager.cpp
+  http.cpp
+  http.h
   huffman.cpp
   huffman.h
   jobs.cpp
   jobs.h
+  json.cpp
+  json.h
   kernel.cpp
   linereader.cpp
   linereader.h
   map.cpp
-  mapchecker.cpp
-  mapchecker.h
   masterserver.cpp
   memheap.cpp
   memheap.h
@@ -508,14 +520,22 @@ set_glob(ENGINE_SHARED GLOB src/engine/shared
   network_console_conn.cpp
   network_server.cpp
   network_server_hack.cpp
+  network_stun.cpp
   packer.cpp
   packer.h
   protocol.h
+  protocol_ex.cpp
   ringbuffer.cpp
   ringbuffer.h
   snapshot.cpp
   snapshot.h
   storage.cpp
+  stun.cpp
+  stun.h
+  teehistorian_ex.cpp
+  teehistorian_ex.h
+  uuid_manager.cpp
+  uuid_manager.h
 )
 set(ENGINE_GENERATED_SHARED src/game/generated/protocol.cpp src/game/generated/protocol.h)
 set_glob(GAME_SHARED GLOB src/game
@@ -528,6 +548,8 @@ set_glob(GAME_SHARED GLOB src/game
   localization.cpp
   localization.h
   mapitems.h
+  mapitems_ex.cpp
+  mapitems_ex.h
   tuning.h
   variables.h
   version.h
@@ -778,7 +800,7 @@ else()
 endif()
 
 # Libraries
-set(LIBS_SERVER ${LIBS})
+set(LIBS_SERVER ${LIBS} ${CURL_LIBRARIES})
 
 # Target
 set(TARGET_SERVER ${SERVER_EXECUTABLE})

@@ -1517,15 +1517,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 	CMapItemLayerTilemap *pTileMap = m_Layers.GameLayer();
 	CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
 
-
-
-
-	/*
-	num_spawn_points[0] = 0;
-	num_spawn_points[1] = 0;
-	num_spawn_points[2] = 0;
-	*/
-
 	for(int y = 0; y < pTileMap->m_Height; y++)
 	{
 		for(int x = 0; x < pTileMap->m_Width; x++)

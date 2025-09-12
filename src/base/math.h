@@ -20,6 +20,11 @@ inline float sign(float f)
 	return f<0.0f?-1.0f:1.0f;
 }
 
+inline int round_truncate(float f)
+{
+	return (int)f;
+}
+
 inline int round_to_int(float f)
 {
 	if(f > 0)
@@ -34,6 +39,30 @@ inline T mix(const T a, const T b, TB amount)
 }
 
 inline float frandom() { return rand()/(float)(RAND_MAX); }
+
+template <typename T>
+constexpr inline T minimum(T a, T b)
+{
+	return a < b ? a : b;
+}
+
+template <typename T>
+constexpr inline T minimum(T a, T b, T c)
+{
+	return minimum(minimum(a, b), c);
+}
+
+template <typename T>
+constexpr inline T maximum(T a, T b)
+{
+	return a > b ? a : b;
+}
+
+template <typename T>
+constexpr inline T maximum(T a, T b, T c)
+{
+	return maximum(maximum(a, b), c);
+}
 
 // float to fixed
 inline int f2fx(float v) { return (int)(v*(float)(1<<10)); }

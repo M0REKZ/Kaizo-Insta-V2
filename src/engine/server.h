@@ -13,6 +13,14 @@ protected:
 	int m_TickSpeed;
 
 public:
+	
+	enum
+	{
+		AUTHED_NO=0,
+		AUTHED_MOD,
+		AUTHED_ADMIN,
+	};
+public:
 	/*
 		Structure: CClientInfo
 	*/
@@ -20,6 +28,8 @@ public:
 	{
 		const char *m_pName;
 		int m_Latency;
+		int m_Authed;
+		bool m_CustClt;
 	};
 
 	int Tick() const { return m_CurrentGameTick; }
@@ -66,6 +76,8 @@ public:
 
 	virtual void DemoRecorder_HandleAutoStart() = 0;
 	virtual bool DemoRecorder_IsRecording() = 0;
+
+	virtual void ExpireServerInfo() = 0;
 };
 
 class IGameServer : public IInterface

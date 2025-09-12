@@ -1,9 +1,3 @@
-if _VERSION == "Lua 5.1" then
-	CheckVersion("0.4")
-else
-	CheckVersion("0.5")
-end
-
 Import("configure.lua")
 Import("other/sdl/sdl.lua")
 Import("other/freetype/freetype.lua")
@@ -24,7 +18,7 @@ function Script(name)
 	if family == "windows" then
 		return str_replace(name, "/", "\\")
 	end
-	return "python " .. name
+	return "python3 " .. name
 end
 
 function CHash(output, ...)
@@ -205,8 +199,7 @@ function build(settings)
 	end
 
 	-- build the small libraries
-	wavpack = Compile(settings, Collect("src/engine/external/wavpack/*.c"))
-	pnglite = Compile(settings, Collect("src/engine/external/pnglite/*.c"))
+	json = Compile(settings, "src/engine/external/json-parser/json.c")
 	md5 = Compile(settings, Collect("src/engine/external/md5/*.c"))
 
 	-- build game components
@@ -227,32 +220,24 @@ function build(settings)
 			client_settings.link.libs:Add("GL")
 			client_settings.link.libs:Add("GLU")
 		end
+		server_settings.link.libs:Add("ssl")
+		server_settings.link.libs:Add("curl")
+		server_settings.link.libs:Add("crypto")
+		server_settings.link.libs:Add("dl")
 
 	elseif family == "windows" then
 		client_settings.link.libs:Add("opengl32")
 		client_settings.link.libs:Add("glu32")
 		client_settings.link.libs:Add("winmm")
 	end
-
-	-- apply sdl settings
-	config.sdl:Apply(client_settings)
-	-- apply freetype settings
-	config.freetype:Apply(client_settings)
-
-	engine = Compile(engine_settings, Collect("src/engine/shared/*.cpp", "src/base/*.c"))
-	client = Compile(client_settings, Collect("src/engine/client/*.cpp"))
+	
+	engine = Compile(engine_settings, Collect("src/engine/shared/*.cpp", "src/base/*.cpp"))
 	server = Compile(server_settings, Collect("src/engine/server/*.cpp"))
-
-	versionserver = Compile(settings, Collect("src/versionsrv/*.cpp"))
-	masterserver = Compile(settings, Collect("src/mastersrv/*.cpp"))
 	game_shared = Compile(settings, Collect("src/game/*.cpp"), nethash, network_source)
 	game_client = Compile(settings, CollectRecursive("src/game/client/*.cpp"), client_content_source)
 	game_server = Compile(settings, CollectRecursive("src/game/server/*.cpp"), server_content_source)
-	game_editor = Compile(settings, Collect("src/game/editor/*.cpp"))
-
-	-- build tools (TODO: fix this so we don't get double _d_d stuff)
-	tools_src = Collect("src/tools/*.cpp", "src/tools/*.c")
-
+	teeuniverses = Compile(server_settings, Collect("src/teeuniverses/*.cpp", "src/teeuniverses/components/*.cpp", "src/teeuniverses/system/*.cpp"))
+	
 	server_osxlaunch = {}
 	if platform == "macosx" then
 		server_osxlaunch = Compile(launcher_settings, "src/osxlaunch/server.m")
@@ -270,7 +255,7 @@ function build(settings)
 		client_link_other)
 
 	server_exe = Link(server_settings, "teeworlds_srv", engine, server,
-		game_shared, game_server, md5, zlib, server_link_other)
+		game_shared, game_server, zlib, md5, sqlite3, server_link_other, json, teeuniverses)
 
 	serverlaunch = {}
 	if platform == "macosx" then
@@ -295,6 +280,7 @@ function build(settings)
 	all = PseudoTarget(settings.config_name, c, s, v, m, t)
 	return all
 end
+
 
 
 debug_settings = NewSettings()
@@ -382,9 +368,7 @@ if platform == "macosx" then
 			PseudoTarget("debug", ppc_d, x86_d, x86_64_d)
 			PseudoTarget("server_release", "server_release_ppc", "server_release_x86", "server_release_x86_64")
 			PseudoTarget("server_debug", "server_debug_ppc", "server_debug_x86", "server_debug_x86_64")
-			PseudoTarget("client_release", "client_release_ppc", "client_release_x86", "client_release_x86_64")
-			PseudoTarget("client_debug", "client_debug_ppc", "client_debug_x86", "client_debug_x86_64")
-		else
+				else
 			PseudoTarget("release", ppc_r)
 			PseudoTarget("debug", ppc_d)
 			PseudoTarget("server_release", "server_release_ppc")
@@ -405,8 +389,7 @@ if platform == "macosx" then
 			PseudoTarget("debug", x86_d, x86_64_d)
 			PseudoTarget("server_release", "server_release_x86", "server_release_x86_64")
 			PseudoTarget("server_debug", "server_debug_x86", "server_debug_x86_64")
-			PseudoTarget("client_release", "client_release_x86", "client_release_x86_64")
-			PseudoTarget("client_debug", "client_debug_x86", "client_debug_x86_64")
+			
 		end
 	end
 else
