@@ -5,6 +5,7 @@
 #include <engine/storage.h>
 
 #include <mastersrv/mastersrv.h>
+#include <cstdio>
 
 #include "linereader.h"
 
