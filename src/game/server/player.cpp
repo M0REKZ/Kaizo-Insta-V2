@@ -183,6 +183,16 @@ void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 		m_pCharacter->OnPredictedInput(NewInput);
 }
 
+void CPlayer::OnPredictedEarlyInput(CNetObj_PlayerInput *NewInput)
+{
+	// skip the input if chat is active
+	if((m_PlayerFlags&PLAYERFLAG_CHATTING) && (NewInput->m_PlayerFlags&PLAYERFLAG_CHATTING))
+		return;
+
+	if(m_pCharacter)
+		m_pCharacter->OnDirectInput(NewInput);
+}
+
 void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 {
 	if(NewInput->m_PlayerFlags&PLAYERFLAG_CHATTING)

@@ -531,6 +531,12 @@ void CGameContext::OnClientPredictedInput(int ClientID, void *pInput)
 		m_apPlayers[ClientID]->OnPredictedInput((CNetObj_PlayerInput *)pInput);
 }
 
+void CGameContext::OnClientPredictedEarlyInput(int ClientID, void *pInput)
+{
+	if(!m_World.m_Paused)
+		m_apPlayers[ClientID]->OnPredictedEarlyInput((CNetObj_PlayerInput *)pInput);
+}
+
 void CGameContext::OnClientEnter(int ClientID)
 {
 	//world.insert_entity(&players[client_id]);
