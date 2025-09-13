@@ -6,6 +6,7 @@
 #include <engine/server.h>
 #include <engine/console.h>
 #include <engine/shared/memheap.h>
+#include <engine/shared/jsonwriter.h>
 
 #include <game/layers.h>
 #include <game/voting.h>
@@ -168,6 +169,8 @@ public:
 	virtual void OnClientDirectInput(int ClientID, void *pInput);
 	virtual void OnClientPredictedInput(int ClientID, void *pInput);
 	virtual void OnClientPredictedEarlyInput(int ClientID, void *pInput);
+
+	void OnUpdatePlayerServerInfo(CJsonStringWriter *pJSonWriter, int Id);
 
 	virtual bool IsClientReady(int ClientID);
 	virtual bool IsClientPlayer(int ClientID);

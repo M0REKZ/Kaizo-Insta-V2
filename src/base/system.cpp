@@ -628,6 +628,16 @@ bool NETADDR::operator==(const NETADDR &other) const
 	return net_addr_comp(this, &other) == 0;
 }
 
+bool NETADDR::operator!=(const NETADDR &other) const
+{
+	return net_addr_comp(this, &other) != 0;
+}
+
+bool NETADDR::operator<(const NETADDR &other) const
+{
+	return net_addr_comp(this, &other) < 0;
+}
+
 int net_addr_comp_noport(const NETADDR *a, const NETADDR *b)
 {
 	NETADDR ta = *a, tb = *b;

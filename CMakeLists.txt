@@ -503,6 +503,8 @@ set_glob(ENGINE_SHARED GLOB src/engine/shared
   jobs.h
   json.cpp
   json.h
+  jsonwriter.cpp
+  jsonwriter.h
   kernel.cpp
   linereader.cpp
   linereader.h

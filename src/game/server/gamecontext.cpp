@@ -614,6 +614,38 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 	Server()->ExpireServerInfo();
 }
 
+void CGameContext::OnUpdatePlayerServerInfo(CJsonStringWriter *pJSonWriter, int Id)
+{
+	if(!m_apPlayers[Id])
+		return;
+
+	pJSonWriter->WriteAttribute("skin");
+	pJSonWriter->BeginObject();
+
+	
+		pJSonWriter->WriteAttribute("name");
+		pJSonWriter->WriteStrValue(m_apPlayers[Id]->m_TeeInfos.m_SkinName);
+
+		if(m_apPlayers[Id]->m_TeeInfos.m_UseCustomColor)
+		{
+			pJSonWriter->WriteAttribute("color_body");
+			pJSonWriter->WriteIntValue(m_apPlayers[Id]->m_TeeInfos.m_ColorBody);
+
+			pJSonWriter->WriteAttribute("color_feet");
+			pJSonWriter->WriteIntValue(m_apPlayers[Id]->m_TeeInfos.m_ColorFeet);
+		}
+
+	pJSonWriter->EndObject();
+
+	pJSonWriter->WriteAttribute("afk");
+	pJSonWriter->WriteBoolValue(/*m_apPlayers[Id]->IsAfk()*/ false);
+
+	const int Team = m_pController->IsTeamplay() ? m_apPlayers[Id]->GetTeam() : m_apPlayers[Id]->GetTeam() == TEAM_SPECTATORS ? -1 : TEAM_RED;
+
+	pJSonWriter->WriteAttribute("team");
+	pJSonWriter->WriteIntValue(Team);
+}
+
 void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 {
 	void *pRawMsg = m_NetObjHandler.SecureUnpackMsg(MsgID, pUnpacker);
