@@ -1,15 +1,15 @@
-import os
-import sys
-from datatypes import *
 import argparse
 import content
 import network
 
 from datatypes import EmitDefinition, EmitTypeDeclaration
 
-def create_enum_table(names, num):
+def create_enum_table(names, num, start = 0):
 	lines = []
 	lines += ["enum", "{"]
+	if len(names) > 0 and start != 0:
+		lines += [f"\t{names[0]} = {start},"]
+		names = names[1:]
 	for name in names:
 		lines += [f"\t{name},"]
 	lines += [f"\t{num}", "};"]
@@ -44,14 +44,14 @@ def EmitFlags(names):
 
 
 def gen_network_header():
-	print("#ifndef GAME_GENERATED_PROTOCOL_H")
-	print("#define GAME_GENERATED_PROTOCOL_H")
+	print("#ifndef GENERATED_PROTOCOL_H")
+	print("#define GENERATED_PROTOCOL_H")
 	print("class CUnpacker;")
 	print("#include <engine/message.h>")
 	print(network.RawHeader)
 
 	for e in network.Enums:
-		for line in create_enum_table([f"{e.name}_{v}" for v in e.values], f'NUM_{e.name}S'): # pylint: disable=no-member
+		for line in create_enum_table([f"{e.name}_{v}" for v in e.values], f'NUM_{e.name}S', e.start): # pylint: disable=no-member
 			print(line)
 		print("")
 
@@ -86,6 +86,21 @@ def gen_network_header():
 	EmitEnum([f"WEAPON_{i.name.value.upper()}" for i in content.container.weapons.id.items], "NUM_WEAPONS")
 
 	print("""
+enum
+{
+	WEAPON_GAME = -3, // team switching etc
+	WEAPON_SELF = -2, // console kill command
+	WEAPON_WORLD = -1, // death tiles etc
+};
+
+// legacy teeworlds enums
+enum
+{
+	WEAPON_RIFLE = WEAPON_LASER,
+	SOUND_RIFLE_FIRE = SOUND_LASER_FIRE,
+	SOUND_RIFLE_BOUNCE = SOUND_LASER_BOUNCE,
+};
+
 class CNetObjHandler
 {
 	const char *m_pMsgFailedOn;
@@ -115,13 +130,15 @@ public:
 	const char *FailedObjOn() const;
 
 	const char *GetMsgName(int Type) const;
+	void DebugDumpSnapshot(const class CSnapshot *pSnap) const;
+	int DumpObj(int Type, const void *pData, int Size) const;
 	void *SecureUnpackMsg(int Type, CUnpacker *pUnpacker);
 	bool TeeHistorianRecordMsg(int Type);
 	const char *FailedMsgOn() const;
 };
 	""")
 
-	print("#endif // GAME_GENERATED_PROTOCOL_H")
+	print("#endif // GENERATED_PROTOCOL_H")
 
 
 def gen_network_source():
@@ -129,10 +146,16 @@ def gen_network_source():
 	print("""\
 #include "protocol.h"
 
+#include <iterator>
+
+#include <base/system.h>
+#include <engine/uuid.h>
 #include <engine/shared/packer.h>
 #include <engine/shared/protocol.h>
 #include <engine/shared/uuid_manager.h>
+#include <engine/shared/snapshot.h>
 
+#include <game/gamecore.h>
 #include <game/mapitems_ex.h>
 
 CNetObjHandler::CNetObjHandler()
@@ -244,7 +267,48 @@ const char *CNetObjHandler::GetMsgName(int Type) const
 	}
 	return "(out of range)";
 }
+
+void CNetObjHandler::DebugDumpSnapshot(const CSnapshot *pSnap) const
+{
+	dbg_msg("snapshot", "data_size=%d num_items=%d", pSnap->DataSize(), pSnap->NumItems());
+	for(int i = 0; i < pSnap->NumItems(); i++)
+	{
+		CSnapshotItem *pItem = pSnap->GetItem(i);
+		int Size = pSnap->GetItemSize(i);
+		int Type = pSnap->GetItemType(i);
+		const char *pName = GetObjName(pItem->Type());
+		if(Type > OFFSET_UUID && Type < g_UuidManager.NumUuids() + OFFSET_UUID)
+			pName = g_UuidManager.GetName(Type);
+		dbg_msg("snapshot", "\\t%s type=%d id=%d size=%d", pName, pItem->Type(), pItem->ID(), Size);
+		if(!DumpObj(Type, pItem->Data(), Size))
+			continue;
+
+		for(size_t b = 0; b < Size / sizeof(int32_t); b++)
+			dbg_msg("snapshot", "\\t\\t%3d %12d\\t%08x", (int)b, pItem->Data()[b], pItem->Data()[b]);
+	}
+}
+
 	""")
+
+	lines = []
+	lines += ['int CNetObjHandler::DumpObj(int Type, const void *pData, int Size) const']
+	lines += ['{']
+	lines += ["\tchar aRawData[512];"]
+	lines += ["\tchar aStr[128];"]
+	lines += ["\tint aInts[2] = {0x0, (int)0x80808080};"]
+	lines += ['\tswitch(Type)']
+	lines += ['\t{']
+
+	for item in network.Objects:
+		for line in item.emit_dump(network.Objects):
+			lines += ["\t" + line]
+		lines += ['\t']
+	lines += ['\t}']
+	lines += ['\treturn -1;']
+	lines += ['};']
+	lines += ['']
+	for line in lines:
+		print(line)
 
 	lines = []
 	lines += ["""\
@@ -265,10 +329,7 @@ void *CNetObjHandler::SecureUnpackObj(int Type, CUnpacker *pUnpacker)
 	"""]
 
 	for item in network.Objects:
-		base_item = None
-		if item.base:
-			base_item = next(i for i in network.Objects if i.name == item.base)
-		for line in item.emit_uncompressed_unpack_and_validate(base_item):
+		for line in item.emit_uncompressed_unpack_and_validate(network.Objects):
 			lines += ["\t" + line]
 		lines += ['\t']
 
@@ -277,10 +338,10 @@ void *CNetObjHandler::SecureUnpackObj(int Type, CUnpacker *pUnpacker)
 		m_pObjFailedOn = "(type out of range)";
 		break;
 	}
-	
+
 	if(pUnpacker->Error())
 		m_pObjFailedOn = "(unpack error)";
-	
+
 	if(m_pObjFailedOn)
 		return 0;
 	m_pObjFailedOn = "";
@@ -310,10 +371,10 @@ void *CNetObjHandler::SecureUnpackMsg(int Type, CUnpacker *pUnpacker)
 		m_pMsgFailedOn = "(type out of range)";
 		break;
 	}
-	
+
 	if(pUnpacker->Error())
 		m_pMsgFailedOn = "(unpack error)";
-	
+
 	if(m_pMsgFailedOn)
 		return 0;
 	m_pMsgFailedOn = "";
@@ -368,7 +429,9 @@ void RegisterGameUuids(CUuidManager *pManager)
 		print(line)
 
 
-def gen_common_content_header():
+def gen_common_content_types_header():
+	# print some includes
+	print('#include <engine/graphics.h>')
 
 	# emit the type declarations
 	with open("datasrc/content.py", "rb") as content_file:
@@ -380,6 +443,11 @@ def gen_common_content_header():
 				order += [line.split()[1].split("(".encode())[0].decode("ascii")]
 		for name in order:
 			EmitTypeDeclaration(content.__dict__[name])
+
+
+def gen_common_content_header():
+	# print some includes
+	print('#include "data_types.h"')
 
 	# the container pointer
 	print('extern CDataContainer *g_pData;')
@@ -394,9 +462,28 @@ def gen_common_content_source():
 	print('CDataContainer *g_pData = &datacontainer;')
 
 
+def gen_content_types_header():
+	print("#ifndef GENERATED_DATA_TYPES_H")
+	print("#define GENERATED_DATA_TYPES_H")
+	gen_common_content_types_header()
+	print("#endif")
+
+
+def gen_client_content_header():
+	print("#ifndef GENERATED_CLIENT_DATA_H")
+	print("#define GENERATED_CLIENT_DATA_H")
+	gen_common_content_header()
+	print("#endif")
+
+
+def gen_client_content_source():
+	print('#include "client_data.h"')
+	gen_common_content_source()
+
+
 def gen_server_content_header():
-	print("#ifndef SERVER_CONTENT_HEADER")
-	print("#define SERVER_CONTENT_HEADER")
+	print("#ifndef GENERATED_SERVER_DATA_H")
+	print("#define GENERATED_SERVER_DATA_H")
 	gen_common_content_header()
 	print("#endif")
 
@@ -413,6 +500,9 @@ def main():
 	FUNCTION_MAP = {
 						'network_header': gen_network_header,
 						'network_source': gen_network_source,
+						'content_types_header': gen_content_types_header,
+						'client_content_header': gen_client_content_header,
+						'client_content_source': gen_client_content_source,
 						'server_content_header': gen_server_content_header,
 						'server_content_source': gen_server_content_source,
 					}

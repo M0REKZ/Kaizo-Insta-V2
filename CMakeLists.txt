@@ -422,6 +422,7 @@ chash("src/game/generated/nethash.cpp"
 )
 generate_source("src/game/generated/client_data.cpp" "client_content_source")
 generate_source("src/game/generated/client_data.h" "client_content_header")
+generate_source("src/game/generated/data_types.h" "content_types_header")
 generate_source("src/game/generated/protocol.cpp" "network_source")
 generate_source("src/game/generated/protocol.h" "network_header")
 generate_source("src/game/generated/server_data.cpp" "server_content_source")
@@ -556,8 +557,8 @@ set_glob(GAME_SHARED GLOB src/game
   voting.h
 )
 set(GAME_GENERATED_SHARED
+  src/game/generated/data_types.h
   src/game/generated/git_revision.cpp
-  src/game/generated/nethash.cpp
   src/game/generated/protocol.h
 )
 
@@ -1254,6 +1255,7 @@ foreach(target ${TARGETS_OWN})
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:Debug>:CONF_DEBUG>)
   target_include_directories(${target} PRIVATE ${CURL_INCLUDE_DIRS})
   target_include_directories(${target} PRIVATE ${ZLIB_INCLUDE_DIRS})
+  target_compile_features(${target} PUBLIC cxx_std_17)
 endforeach()
 
 foreach(target ${TARGETS_DEP})

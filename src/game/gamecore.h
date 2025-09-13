@@ -69,6 +69,10 @@ inline float GetAngle(vec2 Dir)
 	return a;
 }
 
+// Do not use these function unless for legacy code!
+void StrToInts(int *pInts, size_t NumInts, const char *pStr);
+bool IntsToStr(const int *pInts, size_t NumInts, char *pStr, size_t StrSize);
+
 inline void StrToInts(int *pInts, int Num, const char *pStr)
 {
 	int Index = 0;

@@ -179,7 +179,7 @@ void CGameContext::CreateDeath(vec2 Pos, int ClientID)
 	{
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
-		pEvent->m_ClientID = ClientID;
+		pEvent->m_ClientId = ClientID;
 	}
 }
 
@@ -194,7 +194,7 @@ void CGameContext::CreateSound(vec2 Pos, int Sound, int Mask)
 	{
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
-		pEvent->m_SoundID = Sound;
+		pEvent->m_SoundId = Sound;
 	}
 }
 
@@ -204,7 +204,7 @@ void CGameContext::CreateSoundGlobal(int Sound, int Target)
 		return;
 
 	CNetMsg_Sv_SoundGlobal Msg;
-	Msg.m_SoundID = Sound;
+	Msg.m_SoundId = Sound;
 	if(Target == -2)
 		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1);
 	else
@@ -221,7 +221,7 @@ void CGameContext::SendChatTarget(int To, const char *pText)
 {
 	CNetMsg_Sv_Chat Msg;
 	Msg.m_Team = 0;
-	Msg.m_ClientID = -1;
+	Msg.m_ClientId = -1;
 	Msg.m_pMessage = pText;
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, To);
 }
@@ -240,7 +240,7 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText)
 	{
 		CNetMsg_Sv_Chat Msg;
 		Msg.m_Team = 0;
-		Msg.m_ClientID = ChatterClientID;
+		Msg.m_ClientId = ChatterClientID;
 		Msg.m_pMessage = pText;
 		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
 	}
@@ -248,7 +248,7 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText)
 	{
 		CNetMsg_Sv_Chat Msg;
 		Msg.m_Team = 1;
-		Msg.m_ClientID = ChatterClientID;
+		Msg.m_ClientId = ChatterClientID;
 		Msg.m_pMessage = pText;
 
 		// pack one for the recording only
@@ -266,7 +266,7 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText)
 void CGameContext::SendEmoticon(int ClientID, int Emoticon)
 {
 	CNetMsg_Sv_Emoticon Msg;
-	Msg.m_ClientID = ClientID;
+	Msg.m_ClientId = ClientID;
 	Msg.m_Emoticon = Emoticon;
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
 }
@@ -702,14 +702,14 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			char aDesc[VOTE_DESC_LENGTH] = {0};
 			char aCmd[VOTE_CMD_LENGTH] = {0};
 			CNetMsg_Cl_CallVote *pMsg = (CNetMsg_Cl_CallVote *)pRawMsg;
-			const char *pReason = pMsg->m_Reason[0] ? pMsg->m_Reason : "No reason given";
+			const char *pReason = pMsg->m_pReason[0] ? pMsg->m_pReason : "No reason given";
 
-			if(str_comp_nocase(pMsg->m_Type, "option") == 0)
+			if(str_comp_nocase(pMsg->m_pType, "option") == 0)
 			{
 				CVoteOptionServer *pOption = m_pVoteOptionFirst;
 				while(pOption)
 				{
-					if(str_comp_nocase(pMsg->m_Value, pOption->m_aDescription) == 0)
+					if(str_comp_nocase(pMsg->m_pValue, pOption->m_aDescription) == 0)
 					{
 						str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
 									pOption->m_aDescription, pReason);
@@ -723,12 +723,12 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 				if(!pOption)
 				{
-					str_format(aChatmsg, sizeof(aChatmsg), "'%s' isn't an option on this server", pMsg->m_Value);
+					str_format(aChatmsg, sizeof(aChatmsg), "'%s' isn't an option on this server", pMsg->m_pValue);
 					SendChatTarget(ClientID, aChatmsg);
 					return;
 				}
 			}
-			else if(str_comp_nocase(pMsg->m_Type, "kick") == 0)
+			else if(str_comp_nocase(pMsg->m_pType, "kick") == 0)
 			{
 				if(!g_Config.m_SvVoteKick)
 				{
@@ -751,7 +751,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					}
 				}
 
-				int KickID = str_toint(pMsg->m_Value);
+				int KickID = str_toint(pMsg->m_pValue);
 				if(KickID < 0 || KickID >= MAX_CLIENTS || !m_apPlayers[KickID])
 				{
 					SendChatTarget(ClientID, "Invalid client id to kick");
@@ -782,7 +782,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					str_format(aCmd, sizeof(aCmd), "ban %s %d Banned by vote", aAddrStr, g_Config.m_SvVoteKickBantime);
 				}
 			}
-			else if(str_comp_nocase(pMsg->m_Type, "spectate") == 0)
+			else if(str_comp_nocase(pMsg->m_pType, "spectate") == 0)
 			{
 				if(!g_Config.m_SvVoteSpectate)
 				{
@@ -790,7 +790,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					return;
 				}
 
-				int SpectateID = str_toint(pMsg->m_Value);
+				int SpectateID = str_toint(pMsg->m_pValue);
 				if(SpectateID < 0 || SpectateID >= MAX_CLIENTS || !m_apPlayers[SpectateID] || m_apPlayers[SpectateID]->GetTeam() == TEAM_SPECTATORS)
 				{
 					SendChatTarget(ClientID, "Invalid client id to move");
@@ -883,15 +883,15 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		{
 			CNetMsg_Cl_SetSpectatorMode *pMsg = (CNetMsg_Cl_SetSpectatorMode *)pRawMsg;
 
-			if(pPlayer->GetTeam() != TEAM_SPECTATORS || pPlayer->m_SpectatorID == pMsg->m_SpectatorID || ClientID == pMsg->m_SpectatorID ||
+			if(pPlayer->GetTeam() != TEAM_SPECTATORS || pPlayer->m_SpectatorID == pMsg->m_SpectatorId || ClientID == pMsg->m_SpectatorId ||
 				(g_Config.m_SvSpamprotection && pPlayer->m_LastSetSpectatorMode && pPlayer->m_LastSetSpectatorMode+Server()->TickSpeed()*3 > Server()->Tick()))
 				return;
 
 			pPlayer->m_LastSetSpectatorMode = Server()->Tick();
-			if(pMsg->m_SpectatorID != SPEC_FREEVIEW && (!m_apPlayers[pMsg->m_SpectatorID] || m_apPlayers[pMsg->m_SpectatorID]->GetTeam() == TEAM_SPECTATORS))
+			if(pMsg->m_SpectatorId != SPEC_FREEVIEW && (!m_apPlayers[pMsg->m_SpectatorId] || m_apPlayers[pMsg->m_SpectatorId]->GetTeam() == TEAM_SPECTATORS))
 				SendChatTarget(ClientID, "Invalid spectator id used");
 			else
-				pPlayer->m_SpectatorID = pMsg->m_SpectatorID;
+				pPlayer->m_SpectatorID = pMsg->m_SpectatorId;
 		}
 		else if (MsgID == NETMSGTYPE_CL_CHANGEINFO)
 		{

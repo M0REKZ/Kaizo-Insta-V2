@@ -49,6 +49,7 @@ public:
 		m_NumItems = 0;
 	}
 	int NumItems() const { return m_NumItems; }
+	int DataSize() const { return m_DataSize; }
 	CSnapshotItem *GetItem(int Index) const;
 	int GetItemSize(int Index) const;
 	int GetItemIndex(int Key) const;

@@ -99,6 +99,11 @@ enum
 	VERSION_DDNET_PREINPUT = 19040,
 };
 
+enum
+{
+	NUM_TUNEZONES = 256,
+};
+
 // this should be revised
 enum
 {

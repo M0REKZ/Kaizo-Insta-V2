@@ -60,6 +60,24 @@ public:
 		TEXLOAD_NOMIPMAPS = 2,
 	};
 
+	//useless class, included here only to be able to compile
+	class CTextureHandle
+	{
+		friend class IGraphics;
+		int m_Id;
+
+	public:
+		CTextureHandle() :
+			m_Id(-1)
+		{
+		}
+
+		bool IsValid() const { return Id() >= 0; }
+		bool IsNullTexture() const { return Id() == 0; }
+		int Id() const { return m_Id; }
+		void Invalidate() { m_Id = -1; }
+	};
+
 	int ScreenWidth() const { return m_ScreenWidth; }
 	int ScreenHeight() const { return m_ScreenHeight; }
 	float ScreenAspect() const { return (float)ScreenWidth()/(float)ScreenHeight(); }
