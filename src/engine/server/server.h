@@ -142,6 +142,12 @@ public:
 		int m_NextMapChunk;
 	
 		char m_aLanguage[16];
+
+		CUuid m_ConnectionId;
+		bool m_GotDDNetVersionPacket;
+		bool m_DDNetVersionSettled;
+		int m_DDNetVersion;
+		char m_aDDNetVersionStr[64];
 	};
 
 	CClient m_aClients[MAX_CLIENTS];
@@ -201,7 +207,8 @@ public:
 
 	void SetRconCID(int ClientID);
 	bool IsAuthed(int ClientID);
-	int GetClientInfo(int ClientID, CClientInfo *pInfo);
+	bool GetClientInfo(int ClientId, CClientInfo *pInfo) const override;
+	void SetClientDDNetVersion(int ClientId, int DDNetVersion) override;
 	void GetClientAddr(int ClientID, char *pAddrStr, int Size);
 	const char *ClientName(int ClientID);
 	const char *ClientClan(int ClientID);
@@ -209,6 +216,7 @@ public:
 	bool ClientIngame(int ClientID);
 	int MaxClients() const;
 
+	int GetClientVersion(int ClientId) const override;
 	int SendMsg(CMsgPacker *pMsg, int Flags, int ClientID) override;
 
 	void DoSnapshot();
