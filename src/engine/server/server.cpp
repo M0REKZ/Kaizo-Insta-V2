@@ -791,6 +791,8 @@ int CServer::NewClientCallback(int ClientID, void *pUser, bool Sixup)
 	memset(&pThis->m_aClients[ClientID].m_Addr, 0, sizeof(NETADDR));
 	pThis->m_aClients[ClientID].Reset();
 
+	pThis->SendCapabilities(ClientID);
+
 	return 0;
 }
 
