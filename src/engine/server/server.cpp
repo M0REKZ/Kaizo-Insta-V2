@@ -1298,11 +1298,11 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 
 	// count the players
 	int PlayerCount = 0, ClientCount = 0;
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
 		if (m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
-			if (GameServer()->IsClientPlayer(i))
+			if(GameServer()->IsClientPlayer(i))
 				PlayerCount++;
 
 			ClientCount++;
@@ -1312,34 +1312,34 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 	p.Reset();
 
 #define ADD_RAW(p, x) (p).AddRaw(x, sizeof(x))
-#define ADD_INT(p, x)                            \
-	do                                           \
-	{                                            \
+#define ADD_INT(p, x) \
+	do \
+	{ \
 		str_format(aBuf, sizeof(aBuf), "%d", x); \
-		(p).AddString(aBuf, 0);                  \
-	} while (0)
+		(p).AddString(aBuf, 0); \
+	} while(0)
 
 	p.AddString(GameServer()->Version(), 32);
-	if (Type != SERVERINFO_VANILLA)
+	if(Type != SERVERINFO_VANILLA)
 	{
 		p.AddString(g_Config.m_SvName, 256);
 	}
 	else
 	{
-		if (m_NetServer.MaxClients() <= MAX_CLIENTS)
+		if(m_NetServer.MaxClients() <= VANILLA_MAX_CLIENTS)
 		{
 			p.AddString(g_Config.m_SvName, 64);
 		}
 		else
 		{
-			const int MaxClients = max(ClientCount, m_NetServer.MaxClients());
+			const int MaxClients = maximum(ClientCount, m_NetServer.MaxClients());
 			str_format(aBuf, sizeof(aBuf), "%s [%d/%d]", g_Config.m_SvName, ClientCount, MaxClients);
 			p.AddString(aBuf, 64);
 		}
 	}
-	p.AddString("Eternal", 32);
+	p.AddString(GetMapName(), 32);
 
-	if (Type == SERVERINFO_EXTENDED)
+	if(Type == SERVERINFO_EXTENDED)
 	{
 		ADD_INT(p, m_CurrentMapCrc);
 		ADD_INT(p, m_CurrentMapSize);
@@ -1355,26 +1355,26 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 	// How many clients the used serverinfo protocol supports, has to be tracked
 	// separately to make sure we don't subtract the reserved slots from it
 	int MaxClientsProtocol = MAX_CLIENTS;
-	if (Type == SERVERINFO_VANILLA || Type == SERVERINFO_INGAME)
+	if(Type == SERVERINFO_VANILLA || Type == SERVERINFO_INGAME)
 	{
-		if (ClientCount >= MAX_CLIENTS)
+		if(ClientCount >= VANILLA_MAX_CLIENTS)
 		{
-			if (ClientCount < MaxClients)
-				ClientCount = MAX_CLIENTS - 1;
+			if(ClientCount < MaxClients)
+				ClientCount = VANILLA_MAX_CLIENTS - 1;
 			else
-				ClientCount = MAX_CLIENTS;
+				ClientCount = VANILLA_MAX_CLIENTS;
 		}
-		MaxClientsProtocol = MAX_CLIENTS;
-		if (PlayerCount > ClientCount)
+		MaxClientsProtocol = VANILLA_MAX_CLIENTS;
+		if(PlayerCount > ClientCount)
 			PlayerCount = ClientCount;
 	}
 
-	ADD_INT(p, PlayerCount);																			 // num players
-	ADD_INT(p, minimum(MaxClientsProtocol, max(MaxClients - g_Config.m_SvSpectatorSlots, PlayerCount))); // max players
-	ADD_INT(p, ClientCount);																			 // num clients
-	ADD_INT(p, minimum(MaxClientsProtocol, max(MaxClients, ClientCount)));								 // max clients
+	ADD_INT(p, PlayerCount); // num players
+	ADD_INT(p, minimum(MaxClientsProtocol, maximum(MaxClients - g_Config.m_SvSpectatorSlots, PlayerCount))); // max players
+	ADD_INT(p, ClientCount); // num clients
+	ADD_INT(p, minimum(MaxClientsProtocol, maximum(MaxClients, ClientCount))); // max clients
 
-	if (Type == SERVERINFO_EXTENDED)
+	if(Type == SERVERINFO_EXTENDED)
 		p.AddString("", 0); // extra info, reserved
 
 	const void *pPrefix = p.Data();
@@ -1384,55 +1384,45 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 	int ChunksStored = 0;
 	int PlayersStored = 0;
 
-#define SAVE(size)                        \
-	do                                    \
-	{                                     \
+#define SAVE(size) \
+	do \
+	{ \
 		pCache->AddChunk(q.Data(), size); \
-		ChunksStored++;                   \
-	} while (0)
+		ChunksStored++; \
+	} while(0)
 
-#define RESET()                        \
-	do                                 \
-	{                                  \
-		q.Reset();                     \
+#define RESET() \
+	do \
+	{ \
+		q.Reset(); \
 		q.AddRaw(pPrefix, PrefixSize); \
-	} while (0)
+	} while(0)
 
 	RESET();
 
-	if (Type == SERVERINFO_64_LEGACY)
+	if(Type == SERVERINFO_64_LEGACY)
 		q.AddInt(PlayersStored); // offset
 
-	if (!SendClients)
+	if(!SendClients)
 	{
 		SAVE(q.Size());
 		return;
 	}
 
-	if (Type == SERVERINFO_EXTENDED)
+	if(Type == SERVERINFO_EXTENDED)
 	{
 		pPrefix = "";
 		PrefixSize = 0;
 	}
 
 	int Remaining;
-	switch (Type)
+	switch(Type)
 	{
-	case SERVERINFO_EXTENDED:
-		Remaining = -1;
-		break;
-	case SERVERINFO_64_LEGACY:
-		Remaining = 24;
-		break;
-	case SERVERINFO_VANILLA:
-		Remaining = MAX_CLIENTS;
-		break;
-	case SERVERINFO_INGAME:
-		Remaining = MAX_CLIENTS;
-		break;
-	default:
-		dbg_assert(0, "caught earlier, unreachable");
-		return;
+	case SERVERINFO_EXTENDED: Remaining = -1; break;
+	case SERVERINFO_64_LEGACY: Remaining = 24; break;
+	case SERVERINFO_VANILLA: Remaining = VANILLA_MAX_CLIENTS; break;
+	case SERVERINFO_INGAME: Remaining = VANILLA_MAX_CLIENTS; break;
+	default: dbg_assert(false, "unreachable"); return;
 	}
 
 	// Use the following strategy for sending:
@@ -1440,13 +1430,13 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 	// For legacy 64p, send 24 players per packet.
 	// For extended, send as much players as possible.
 
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
 		if (m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
-			if (Remaining == 0)
+			if(Remaining == 0)
 			{
-				if (Type == SERVERINFO_VANILLA || Type == SERVERINFO_INGAME)
+				if(Type == SERVERINFO_VANILLA || Type == SERVERINFO_INGAME)
 					break;
 
 				// Otherwise we're SERVERINFO_64_LEGACY.
@@ -1455,7 +1445,7 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 				q.AddInt(PlayersStored); // offset
 				Remaining = 24;
 			}
-			if (Remaining > 0)
+			if(Remaining > 0)
 			{
 				Remaining--;
 			}
@@ -1465,15 +1455,21 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 			q.AddString(ClientName(i), MAX_NAME_LENGTH); // client name
 			q.AddString(ClientClan(i), MAX_CLAN_LENGTH); // client clan
 
-			ADD_INT(q, m_aClients[i].m_Country);				 // client country
-			ADD_INT(q, m_aClients[i].m_Score);					 // client score
+			ADD_INT(q, m_aClients[i].m_Country); // client country (ISO 3166-1 numeric)
+
+			int Score;
+			
+			Score = m_aClients[i].m_Score;
+			
+
+			ADD_INT(q, Score); // client score
 			ADD_INT(q, GameServer()->IsClientPlayer(i) ? 1 : 0); // is player?
-			if (Type == SERVERINFO_EXTENDED)
+			if(Type == SERVERINFO_EXTENDED)
 				q.AddString("", 0); // extra info, reserved
 
-			if (Type == SERVERINFO_EXTENDED)
+			if(Type == SERVERINFO_EXTENDED)
 			{
-				if (q.Size() >= NET_MAX_PAYLOAD - 18) // 8 bytes for type, 10 bytes for the largest token
+				if(q.Size() >= NET_MAX_PAYLOAD - 18) // 8 bytes for type, 10 bytes for the largest token
 				{
 					// Retry current player.
 					i--;
