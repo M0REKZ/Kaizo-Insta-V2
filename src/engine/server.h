@@ -4,6 +4,7 @@
 #define ENGINE_SERVER_H
 #include "kernel.h"
 #include "message.h"
+#include <engine/shared/jsonwriter.h>
 
 // When recording a demo on the server, the ClientId -1 is used
 enum
@@ -131,6 +132,14 @@ public:
 	virtual const char *GameType() = 0;
 	virtual const char *Version() = 0;
 	virtual const char *NetVersion() = 0;
+
+	/**
+	 * Used to report custom player info to master servers.
+	 *
+	 * @param pJsonWriter A pointer to a CJsonStringWriter which the custom data will be added to.
+	 * @param i The client id.
+	 */
+	virtual void OnUpdatePlayerServerInfo(CJsonStringWriter *pJSonWriter, int Id) = 0;
 };
 
 extern IGameServer *CreateGameServer();

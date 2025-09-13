@@ -27,6 +27,7 @@
 #include <engine/shared/protocol.h>
 #include <engine/shared/protocol_ex.h>
 #include <engine/shared/snapshot.h>
+#include <engine/shared/jsonwriter.h>
 
 #include <game/version.h>
 
@@ -1622,83 +1623,94 @@ void CServer::UpdateRegisterServerInfo()
 {
 	// count the players
 	int PlayerCount = 0, ClientCount = 0;
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if (m_aClients[i].m_State != CClient::STATE_EMPTY)
+		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
-			if (GameServer()->IsClientPlayer(i))
+			if(GameServer()->IsClientPlayer(i))
 				PlayerCount++;
 
 			ClientCount++;
 		}
 	}
 
-	int MaxPlayers = max(m_NetServer.MaxClients() - g_Config.m_SvSpectatorSlots, PlayerCount);
-	int MaxClients = max(m_NetServer.MaxClients(), ClientCount);
-	char aName[256];
-	char aGameType[32];
-	char aMapName[64];
-	char aVersion[64];
+	int MaxPlayers = maximum(m_NetServer.MaxClients() - g_Config.m_SvSpectatorSlots, PlayerCount);
+	int MaxClients = maximum(m_NetServer.MaxClients(), ClientCount);
 	char aMapSha256[SHA256_MAXSTRSIZE];
 
 	sha256_str(m_pMap->Sha256(), aMapSha256, sizeof(aMapSha256));
 
-	char aInfo[16384];
-	str_format(aInfo, sizeof(aInfo),
-			   "{"
-			   "\"max_clients\":%d,"
-			   "\"max_players\":%d,"
-			   "\"passworded\":%s,"
-			   "\"game_type\":\"%s\","
-			   "\"name\":\"%s\","
-			   "\"map\":{"
-			   "\"name\":\"%s\","
-			   "\"sha256\":\"%s\","
-			   "\"size\":%d"
-			   "},"
-			   "\"version\":\"%s\","
-			   "\"clients\":[",
-			   MaxClients,
-			   MaxPlayers,
-			   JsonBool(g_Config.m_Password[0]),
-			   EscapeJson(aGameType, sizeof(aGameType), GameServer()->GameType()),
-			   EscapeJson(aName, sizeof(aName), g_Config.m_SvName),
-			   EscapeJson(aMapName, sizeof(aMapName), m_aCurrentMap),
-			   aMapSha256,
-			   m_CurrentMapSize,
-			   EscapeJson(aVersion, sizeof(aVersion), GameServer()->Version()));
+	CJsonStringWriter JsonWriter;
 
-	bool FirstPlayer = true;
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	JsonWriter.BeginObject();
+	JsonWriter.WriteAttribute("max_clients");
+	JsonWriter.WriteIntValue(MaxClients);
+
+	JsonWriter.WriteAttribute("max_players");
+	JsonWriter.WriteIntValue(MaxPlayers);
+
+	JsonWriter.WriteAttribute("passworded");
+	JsonWriter.WriteBoolValue(g_Config.m_Password[0]);
+
+	JsonWriter.WriteAttribute("game_type");
+	JsonWriter.WriteStrValue(GameServer()->GameType());
+
+	JsonWriter.WriteAttribute("name");
+	JsonWriter.WriteStrValue(g_Config.m_SvName);
+
+	JsonWriter.WriteAttribute("map");
+	JsonWriter.BeginObject();
+	JsonWriter.WriteAttribute("name");
+	JsonWriter.WriteStrValue(GetMapName());
+	JsonWriter.WriteAttribute("sha256");
+	JsonWriter.WriteStrValue(aMapSha256);
+	JsonWriter.WriteAttribute("size");
+	JsonWriter.WriteIntValue(m_CurrentMapSize);
+	JsonWriter.EndObject();
+
+	JsonWriter.WriteAttribute("version");
+	JsonWriter.WriteStrValue(GameServer()->Version());
+
+	JsonWriter.WriteAttribute("client_score_kind");
+	JsonWriter.WriteStrValue("time"); // "points" or "time"
+
+	JsonWriter.WriteAttribute("requires_login");
+	JsonWriter.WriteBoolValue(false);
+
+	JsonWriter.WriteAttribute("clients");
+	JsonWriter.BeginArray();
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if (m_aClients[i].m_State != CClient::STATE_EMPTY)
+		if(m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
-			char aCName[32];
-			char aCClan[32];
+			JsonWriter.BeginObject();
 
-			char aClientInfo[256];
-			str_format(aClientInfo, sizeof(aClientInfo),
-					   "%s{"
-					   "\"name\":\"%s\","
-					   "\"clan\":\"%s\","
-					   "\"country\":%d,"
-					   "\"score\":%d,"
-					   "\"is_player\":%s"
-					   "}",
-					   !FirstPlayer ? "," : "",
-					   EscapeJson(aCName, sizeof(aCName), ClientName(i)),
-					   EscapeJson(aCClan, sizeof(aCClan), ClientClan(i)),
-					   m_aClients[i].m_Country,
-					   m_aClients[i].m_Score,
-					   JsonBool(GameServer()->IsClientPlayer(i)));
-			str_append(aInfo, aClientInfo, sizeof(aInfo));
-			FirstPlayer = false;
+			JsonWriter.WriteAttribute("name");
+			JsonWriter.WriteStrValue(ClientName(i));
+
+			JsonWriter.WriteAttribute("clan");
+			JsonWriter.WriteStrValue(ClientClan(i));
+
+			JsonWriter.WriteAttribute("country");
+			JsonWriter.WriteIntValue(m_aClients[i].m_Country); // ISO 3166-1 numeric
+
+			JsonWriter.WriteAttribute("score");
+			JsonWriter.WriteIntValue(m_aClients[i].m_Score);
+
+			JsonWriter.WriteAttribute("is_player");
+			JsonWriter.WriteBoolValue(GameServer()->IsClientPlayer(i));
+
+			GameServer()->OnUpdatePlayerServerInfo(&JsonWriter, i);
+
+			JsonWriter.EndObject();
 		}
 	}
 
-	str_append(aInfo, "]}", sizeof(aInfo));
+	JsonWriter.EndArray();
+	JsonWriter.EndObject();
 
-	m_pRegister->OnNewInfo(aInfo);
+	m_pRegister->OnNewInfo(JsonWriter.GetOutputString().c_str());
 }
 
 void CServer::UpdateServerInfo(bool Resend)
