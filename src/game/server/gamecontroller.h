@@ -127,6 +127,20 @@ public:
 	*/
 	virtual int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon);
 
+	/*
+		Function: on_CCharacter_takedamage
+			Called when a CCharacter in the world takes damage.
+			Intended for mods
+
+		Arguments:
+			char - The CCharacter that took damage.
+			force - The force that must be applied to the character.
+			dmg - Amount of damage.
+			from - The player client id that damaged it, can be -1.
+			weapon - What weapon damaged the character.
+	*/
+	virtual bool OnCharacterTakeDamage(class CCharacter *pChar, vec2 Force, int Dmg, int From, int Weapon) { return false; }
+
 
 	virtual void OnPlayerInfoChange(class CPlayer *pP);
 

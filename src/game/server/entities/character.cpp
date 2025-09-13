@@ -693,6 +693,9 @@ void CCharacter::Die(int Killer, int Weapon)
 
 bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 {
+	if(GameServer()->m_pController->OnCharacterTakeDamage(this, Force, Dmg, From, Weapon)) //+KZ
+		return true;
+
 	m_Core.m_Vel += Force;
 
 	if(GameServer()->m_pController->IsFriendlyFire(m_pPlayer->GetCID(), From) && !g_Config.m_SvTeamdamage)
