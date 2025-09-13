@@ -381,7 +381,7 @@ void CServer::SetClientScore(int ClientID, int Score)
 	if (ClientID < 0 || ClientID >= MAX_CLIENTS || m_aClients[ClientID].m_State < CClient::STATE_READY)
 		return;
 
-	if(m_aClients[ClientId].m_Score != Score)
+	if(m_aClients[ClientID].m_Score != Score)
 		ExpireServerInfo();
 	
 	m_aClients[ClientID].m_Score = Score;
