@@ -2,10 +2,10 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #ifndef GAME_SERVER_GAMEMODES_CTF_H
 #define GAME_SERVER_GAMEMODES_CTF_H
-#include <game/server/gamecontroller.h>
+#include "base_pvp.h"
 #include <game/server/entity.h>
 
-class CGameControllerCTF : public IGameController
+class CGameControllerCTF : public CGameControllerBasePvP
 {
 public:
 	class CFlag *m_apFlags[2];

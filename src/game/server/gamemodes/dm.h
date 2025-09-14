@@ -2,9 +2,9 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #ifndef GAME_SERVER_GAMEMODES_DM_H
 #define GAME_SERVER_GAMEMODES_DM_H
-#include <game/server/gamecontroller.h>
+#include "base_pvp.h"
 
-class CGameControllerDM : public IGameController
+class CGameControllerDM : public CGameControllerBasePvP
 {
 public:
 	CGameControllerDM(class CGameContext *pGameServer);

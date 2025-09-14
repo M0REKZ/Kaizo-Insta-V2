@@ -11,17 +11,30 @@
 #include "ctf.h"
 
 CGameControllerCTF::CGameControllerCTF(class CGameContext *pGameServer)
-: IGameController(pGameServer)
+: CGameControllerBasePvP(pGameServer)
 {
 	m_apFlags[0] = 0;
 	m_apFlags[1] = 0;
-	m_pGameType = "CTF!";
+	
+	switch (m_InstagibWeapon)
+	{
+	case WEAPON_GRENADE:
+		m_pGameType = "gCTF!";
+		break;
+	case WEAPON_LASER:
+		m_pGameType = "iCTF!";
+		break;
+	default:
+		m_pGameType = "CTF!";
+		break;
+	}
+	
 	m_GameFlags = GAMEFLAG_TEAMS|GAMEFLAG_FLAGS;
 }
 
 bool CGameControllerCTF::OnEntity(int Index, vec2 Pos)
 {
-	if(IGameController::OnEntity(Index, Pos))
+	if(CGameControllerBasePvP::OnEntity(Index, Pos))
 		return true;
 
 	int Team = -1;
@@ -40,7 +53,7 @@ bool CGameControllerCTF::OnEntity(int Index, vec2 Pos)
 
 int CGameControllerCTF::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int WeaponID)
 {
-	IGameController::OnCharacterDeath(pVictim, pKiller, WeaponID);
+	CGameControllerBasePvP::OnCharacterDeath(pVictim, pKiller, WeaponID);
 	int HadFlag = 0;
 
 	// drop flags
@@ -107,7 +120,7 @@ bool CGameControllerCTF::CanBeMovedOnBalance(int ClientID)
 
 void CGameControllerCTF::Snap(int SnappingClient)
 {
-	IGameController::Snap(SnappingClient);
+	CGameControllerBasePvP::Snap(SnappingClient);
 
 	CNetObj_GameData *pGameDataObj = (CNetObj_GameData *)Server()->SnapNewItem(NETOBJTYPE_GAMEDATA, 0, sizeof(CNetObj_GameData));
 	if(!pGameDataObj)
@@ -142,7 +155,7 @@ void CGameControllerCTF::Snap(int SnappingClient)
 
 void CGameControllerCTF::Tick()
 {
-	IGameController::Tick();
+	CGameControllerBasePvP::Tick();
 
 	if(GameServer()->m_World.m_ResetRequested || GameServer()->m_World.m_Paused)
 		return;

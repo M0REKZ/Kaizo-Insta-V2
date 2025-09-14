@@ -440,12 +440,13 @@ void CCharacter::HandleWeapons()
 	return;
 }
 
-bool CCharacter::GiveWeapon(int Weapon, int Ammo)
+bool CCharacter::GiveWeapon(int Weapon, int Ammo, bool Got)
 {
-	if(m_aWeapons[Weapon].m_Ammo < g_pData->m_Weapons.m_aId[Weapon].m_Maxammo || !m_aWeapons[Weapon].m_Got)
+	if(m_aWeapons[Weapon].m_Ammo < g_pData->m_Weapons.m_aId[Weapon].m_Maxammo || m_aWeapons[Weapon].m_Got != Got)
 	{
-		m_aWeapons[Weapon].m_Got = true;
+		m_aWeapons[Weapon].m_Got = Got;
 		m_aWeapons[Weapon].m_Ammo = min(g_pData->m_Weapons.m_aId[Weapon].m_Maxammo, Ammo);
+		HandleWeaponSwitch();
 		return true;
 	}
 	return false;

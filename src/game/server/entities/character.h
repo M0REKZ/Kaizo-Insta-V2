@@ -49,13 +49,14 @@ public:
 	bool IncreaseHealth(int Amount);
 	bool IncreaseArmor(int Amount);
 
-	bool GiveWeapon(int Weapon, int Ammo);
+	bool GiveWeapon(int Weapon, int Ammo, bool Got = true);
 	void GiveNinja();
 
 	void SetEmote(int Emote, int Tick);
 
 	bool IsAlive() const { return m_Alive; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
+	class CCharacterCore &Core() { return m_Core; }
 
 private:
 	// player controlling this character

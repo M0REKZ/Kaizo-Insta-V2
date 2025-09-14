@@ -6,15 +6,26 @@
 #include <game/server/player.h>
 #include "tdm.h"
 
-CGameControllerTDM::CGameControllerTDM(class CGameContext *pGameServer) : IGameController(pGameServer)
+CGameControllerTDM::CGameControllerTDM(class CGameContext *pGameServer) : CGameControllerBasePvP(pGameServer)
 {
-	m_pGameType = "TDM!";
+	switch (m_InstagibWeapon)
+	{
+	case WEAPON_GRENADE:
+		m_pGameType = "gTDM!";
+		break;
+	case WEAPON_LASER:
+		m_pGameType = "iTDM!";
+		break;
+	default:
+		m_pGameType = "TDM!";
+		break;
+	}
 	m_GameFlags = GAMEFLAG_TEAMS;
 }
 
 int CGameControllerTDM::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
 {
-	IGameController::OnCharacterDeath(pVictim, pKiller, Weapon);
+	CGameControllerBasePvP::OnCharacterDeath(pVictim, pKiller, Weapon);
 
 
 	if(pKiller && Weapon != WEAPON_GAME)
@@ -33,7 +44,7 @@ int CGameControllerTDM::OnCharacterDeath(class CCharacter *pVictim, class CPlaye
 
 void CGameControllerTDM::Snap(int SnappingClient)
 {
-	IGameController::Snap(SnappingClient);
+	CGameControllerBasePvP::Snap(SnappingClient);
 
 	CNetObj_GameData *pGameDataObj = (CNetObj_GameData *)Server()->SnapNewItem(NETOBJTYPE_GAMEDATA, 0, sizeof(CNetObj_GameData));
 	if(!pGameDataObj)
@@ -48,5 +59,5 @@ void CGameControllerTDM::Snap(int SnappingClient)
 
 void CGameControllerTDM::Tick()
 {
-	IGameController::Tick();
+	CGameControllerBasePvP::Tick();
 }
