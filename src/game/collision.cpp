@@ -29,30 +29,6 @@ void CCollision::Init(class CLayers *pLayers)
 	m_pSpeedup = 0;
 	m_pFront = 0;
 
-	for(int i = 0; i < m_Width*m_Height; i++)
-	{
-		// Game will always be there so no check for that
-		
-		// int Index = m_pTiles[i].m_Index;
-
-		// if(Index > 128)
-		// 	continue;
-
-		// switch(Index)
-		// {
-		// case TILE_DEATH:
-		// 	m_pTiles[i].m_Index = COLFLAG_DEATH;
-		// 	break;
-		// case TILE_SOLID:
-		// 	m_pTiles[i].m_Index = COLFLAG_SOLID;
-		// 	break;
-		// case TILE_NOHOOK:
-		// 	m_pTiles[i].m_Index = COLFLAG_SOLID|COLFLAG_NOHOOK;
-		// 	break;
-		// default:
-		// 	m_pTiles[i].m_Index = 0;
-		// }
-	}
 	if(m_pLayers->SpeedupLayer())
 		m_pSpeedup = static_cast<CSpeedupTile *>(m_pLayers->Map()->GetData(m_pLayers->SpeedupLayer()->m_Speedup));
 	if(m_pLayers->FrontLayer())
