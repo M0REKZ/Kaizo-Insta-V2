@@ -172,7 +172,7 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 	return false;
 }
 
-void IGameController::EndRound()
+void IGameController::EndMatch()
 {
 	if(m_Warmup) // game can't end when we are running warmup
 		return;
@@ -207,7 +207,7 @@ const char *IGameController::GetTeamName(int Team)
 
 static bool IsSeparator(char c) { return c == ';' || c == ' ' || c == ',' || c == '\t'; }
 
-void IGameController::StartRound()
+void IGameController::StartMatch()
 {
 	ResetGame();
 
@@ -227,7 +227,7 @@ void IGameController::StartRound()
 void IGameController::ChangeMap(const char *pToMap)
 {
 	str_copy(m_aMapWish, pToMap, sizeof(m_aMapWish));
-	EndRound();
+	EndMatch();
 }
 
 void IGameController::CycleMap()
@@ -441,7 +441,7 @@ void IGameController::Tick()
 	{
 		m_Warmup--;
 		if(!m_Warmup)
-			StartRound();
+			StartMatch();
 	}
 
 	if(m_GameOverTick != -1)
@@ -450,7 +450,7 @@ void IGameController::Tick()
 		if(Server()->Tick() > m_GameOverTick+Server()->TickSpeed()*10)
 		{
 			CycleMap();
-			StartRound();
+			StartMatch();
 			m_RoundCount++;
 		}
 	}
@@ -718,7 +718,7 @@ void IGameController::DoWincheck()
 				(g_Config.m_SvTimelimit > 0 && (Server()->Tick()-m_RoundStartTick) >= g_Config.m_SvTimelimit*Server()->TickSpeed()*60))
 			{
 				if(m_aTeamscore[TEAM_RED] != m_aTeamscore[TEAM_BLUE])
-					EndRound();
+					EndMatch();
 				else
 					m_SuddenDeath = 1;
 			}
@@ -747,7 +747,7 @@ void IGameController::DoWincheck()
 				(g_Config.m_SvTimelimit > 0 && (Server()->Tick()-m_RoundStartTick) >= g_Config.m_SvTimelimit*Server()->TickSpeed()*60))
 			{
 				if(TopscoreCount == 1)
-					EndRound();
+					EndMatch();
 				else
 					m_SuddenDeath = 1;
 			}
