@@ -10,6 +10,7 @@
 
 #include <game/layers.h>
 #include <game/collision.h>
+#include <game/mapitems.h>
 
 CCollision::CCollision()
 {
@@ -100,7 +101,7 @@ int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *p
 		int fhit = GetCollisionAtFront(ix, iy);
 		if(CheckPoint(ix, iy))
 		{
-			if(WhoChecks == 1 /* 1=Hook */ && (fhit == 5 || fhit == 66))
+			if(WhoChecks == 1 /* 1=Hook */ && (fhit == TILE_THROUGH || fhit == TILE_THROUGHOLD))
 				hit = 0;
 		}
 		if(hit)
@@ -258,16 +259,16 @@ int CCollision::IsSpeedup(int Index) const
 	return 0;
 }
 
-void CCollision::GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed, int *Type) const
+int CCollision::GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed) const
 {
 	if(!m_pSpeedup || Index < 0 )
-		return;
+		return -1;
 	float Angle = m_pSpeedup[Index].m_Angle * (pi / 180.0f);
 	*Force = m_pSpeedup[Index].m_Force;
 	*Dir = vec2(cos(Angle), sin(Angle));
 	if(MaxSpeed)
 		*MaxSpeed = m_pSpeedup[Index].m_MaxSpeed;
-	*Type = m_pSpeedup[Index].m_Type;
+	return m_pSpeedup[Index].m_Type;
 }
 
 const std::vector<vec2> &CCollision::TeleOuts(int Number) const

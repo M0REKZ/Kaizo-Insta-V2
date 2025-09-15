@@ -46,7 +46,7 @@ public:
 
 	int IsSpeedup(int Index) const;
 	int GetMapIndex(vec2 Pos) const;
-	void GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed, int *Type) const;
+	int GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed) const;
 	
 	private:
 	CTile *m_pFront;

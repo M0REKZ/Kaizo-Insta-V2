@@ -867,7 +867,7 @@ void CCharacter::HandleTele(int Index)
 	if(TeleNumber < 1 || TeleType == TILE_TELEOUT || TeleType == 30)
 	    return;
 
-	if(TeleType == 29 )
+	if(TeleType == TILE_CHECKPOINT )
 	{
         m_CheckPoint = TeleNumber;
         return;
@@ -876,7 +876,7 @@ void CCharacter::HandleTele(int Index)
 	int DestTeleNumber = -1;
 	vec2 DestPosition;
 
-	if(TeleType == 63 || TeleType == 32) // CFRM
+	if(TeleType == TILE_TELECHECKIN || TeleType == TILE_TELECHECKINRED) // CFRM
 	{
 	    const std::vector<vec2> &CheckOuts = GameServer()->Collision()->TeleCheckOuts(m_CheckPoint);
 	    if(CheckOuts.empty())
@@ -884,23 +884,18 @@ void CCharacter::HandleTele(int Index)
         DestTeleNumber = clamp(static_cast<int>(random()), 0, static_cast<int>(CheckOuts.size()) - 1);
         DestPosition = CheckOuts.at(DestTeleNumber);
 	}
-	if(TeleType == 10 || TeleType == 26 || TeleType == 14 ) // NORMAL TELE IN
+	if(TeleType == TILE_TELEIN || TeleType == TILE_TELEINRED) // NORMAL TELE IN
     {
         const std::vector<vec2> &Outs = GameServer()->Collision()->TeleOuts(TeleNumber);
         if(Outs.empty())
             return;
         DestTeleNumber = clamp(static_cast<int>(random()), 0, static_cast<int>(Outs.size()) - 1);
         DestPosition = Outs.at(DestTeleNumber);
-        if(TeleType == 14 && (m_ActiveWeapon != WEAPON_HAMMER || m_AttackTick != Server()->Tick()-SERVER_TICK_SPEED/8))
-        {
-            DestPosition = vec2(0,0);
-            DestTeleNumber = -1;
-        }
     }
     if(DestTeleNumber != -1)
     {
         m_Core.m_Pos = DestPosition;
-        if((TeleType == 63) || (TeleType == 10))
+        if((TeleType == TILE_TELECHECKINRED) || (TeleType == TILE_TELEINRED))
         {
            	m_Core.m_Vel = vec2(0,0);
             m_Core.ResetHook();
@@ -915,7 +910,7 @@ void CCharacter::HandleSpeedups(int Index)
 		vec2 Direction, TempVel = m_Core.m_Vel;
 		int Force, MaxSpeed, Type = 0;
 		float TeeAngle, SpeederAngle, DiffAngle, SpeedLeft, TeeSpeed;
-		GameServer()->Collision()->GetSpeedup(Index, &Direction, &Force, &MaxSpeed, &Type);
+		Type = GameServer()->Collision()->GetSpeedup(Index, &Direction, &Force, &MaxSpeed);
         if(Type == 29 || Type == 28)
         {
     		if(Force == 255 && MaxSpeed)
