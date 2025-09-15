@@ -864,7 +864,7 @@ void CCharacter::HandleTele(int Index)
 	int TeleNumber = pTeleLayer[Index].m_Number;
 	int TeleType = pTeleLayer[Index].m_Type;
 
-	if(TeleNumber < 1 || TeleType == TILE_TELEOUT || TeleType == 30)
+	if(TeleNumber < 1 || TeleType == TILE_TELEOUT || TeleType == TILE_TELECHECKOUT)
 	    return;
 
 	if(TeleType == TILE_CHECKPOINT )
@@ -911,7 +911,7 @@ void CCharacter::HandleSpeedups(int Index)
 		int Force, MaxSpeed, Type = 0;
 		float TeeAngle, SpeederAngle, DiffAngle, SpeedLeft, TeeSpeed;
 		Type = GameServer()->Collision()->GetSpeedup(Index, &Direction, &Force, &MaxSpeed);
-        if(Type == 29 || Type == 28)
+        if(Type == TILE_SPEEDUPOLD || Type == TILE_SPEEDUP)
         {
     		if(Force == 255 && MaxSpeed)
     		{
