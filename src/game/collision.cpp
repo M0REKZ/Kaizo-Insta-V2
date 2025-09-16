@@ -101,7 +101,7 @@ int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *p
 		int fhit = GetCollisionAtFront(ix, iy);
 		if(CheckPoint(ix, iy))
 		{
-			if(WhoChecks == 1 /* 1=Hook */ && (fhit == TILE_THROUGH || fhit == TILE_THROUGHOLD))
+			if(WhoChecks == WHOCHECKS_HOOK /* 1=Hook */ && fhit == TILE_THROUGH)
 				hit = 0;
 		}
 		if(hit)
@@ -253,22 +253,18 @@ int CCollision::IsSpeedup(int Index) const
 	if(Index < 0 || !m_pSpeedup)
 		return 0;
 
-	if(m_pSpeedup[Index].m_Force > 0)
-		return Index;
-
-	return 0;
+	return m_pSpeedup[Index].m_Type;
 }
 
-int CCollision::GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed) const
+void CCollision::GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed) const
 {
-	if(!m_pSpeedup || Index < 0 )
-		return -1;
+	if(!m_pSpeedup || Index < 0 || !Force || !Dir)
+		return;
 	float Angle = m_pSpeedup[Index].m_Angle * (pi / 180.0f);
 	*Force = m_pSpeedup[Index].m_Force;
 	*Dir = vec2(cos(Angle), sin(Angle));
 	if(MaxSpeed)
 		*MaxSpeed = m_pSpeedup[Index].m_MaxSpeed;
-	return m_pSpeedup[Index].m_Type;
 }
 
 const std::vector<vec2> &CCollision::TeleOuts(int Number) const

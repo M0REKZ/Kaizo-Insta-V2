@@ -27,6 +27,10 @@ class CCollision
 	int GetPureMapIndex(vec2 Pos) const { return GetPureMapIndex(Pos.x, Pos.y); }
 
 public:
+	enum
+	{
+		WHOCHECKS_HOOK=1,
+	};
 	CCollision();
 	void Init(class CLayers *pLayers);
 	bool CheckPoint(float x, float y) { return IsTileSolid(round_to_int(x), round_to_int(y)); }
@@ -46,7 +50,7 @@ public:
 
 	int IsSpeedup(int Index) const;
 	int GetMapIndex(vec2 Pos) const;
-	int GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed) const;
+	void GetSpeedup(int Index, vec2 *Dir, int *Force, int *MaxSpeed) const;
 	
 	private:
 	CTile *m_pFront;

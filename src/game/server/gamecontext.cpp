@@ -707,7 +707,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			pPlayer->m_LastChat = Server()->Tick();
 
-			if(pMsg->m_pMessage[0] == '/')
+			if(pMsg->m_pMessage[0] == '/' || pMsg->m_pMessage[0] == '!')
 			{
 				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
 				m_ChatResponseTargetID = ClientID;

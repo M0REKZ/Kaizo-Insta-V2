@@ -905,12 +905,13 @@ void CCharacter::HandleTele(int Index)
 
 void CCharacter::HandleSpeedups(int Index)
 {
-   	if(GameServer()->Collision()->IsSpeedup(Index))
+	int Type = GameServer()->Collision()->IsSpeedup(Index);
+   	if(Type != 0)
 	{
 		vec2 Direction, TempVel = m_Core.m_Vel;
-		int Force, MaxSpeed, Type = 0;
+		int Force, MaxSpeed = 0;
 		float TeeAngle, SpeederAngle, DiffAngle, SpeedLeft, TeeSpeed;
-		Type = GameServer()->Collision()->GetSpeedup(Index, &Direction, &Force, &MaxSpeed);
+		GameServer()->Collision()->GetSpeedup(Index, &Direction, &Force, &MaxSpeed);
         if(Type == TILE_SPEEDUPOLD || Type == TILE_SPEEDUP)
         {
     		if(Force == 255 && MaxSpeed)
