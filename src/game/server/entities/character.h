@@ -108,6 +108,8 @@ private:
 	int m_Health;
 	int m_Armor;
 
+	int m_CheckPoint;
+
 	// ninja
 	struct
 	{
@@ -116,6 +118,9 @@ private:
 		int m_CurrentMoveTime;
 		int m_OldVelAmount;
 	} m_Ninja;
+
+	void HandleTele(int Index);
+	void HandleSpeedups(int Index);
 
 	// the player core for the physics
 	CCharacterCore m_Core;
