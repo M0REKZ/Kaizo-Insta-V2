@@ -8,6 +8,19 @@ Intended to be a successor for original Kaizo-Insta, being independent of ddnet-
 
 Only DDNet Clients are supported.
 
+## Gametypes:
+
+- CTF
+- iCTF
+- gCTF
+- DM
+- iDM
+- gDM
+- TDM
+- iTDM
+- gTDM
+
 ## Features:
 
-- TODO
+- Laser and Grenade Instagib support
+
