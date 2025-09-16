@@ -65,6 +65,9 @@ protected:
 	bool m_StartingRound;
 
 public:
+
+	bool m_IsRoundGameType;
+
 	const char *m_pGameType;
 
 	bool IsTeamplay() const;

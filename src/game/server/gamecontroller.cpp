@@ -35,6 +35,8 @@ IGameController::IGameController(class CGameContext *pGameServer)
 
 	m_RoundEnd = -1;
 	m_StartingRound = false;
+
+	m_IsRoundGameType = false;
 }
 
 IGameController::~IGameController()
@@ -594,7 +596,7 @@ void IGameController::Tick()
 
 	if(m_RoundStartTick != Server()->Tick() && m_GameOverTick == -1 && !m_StartingRound && m_RoundEnd < 0 && !m_Warmup && !m_UnpauseTimer && HasEnoughPlayers())
 	{
-		if(m_GameFlags&GAMEFLAG_SURVIVAL)
+		if(m_IsRoundGameType)
 			DoWincheckRound();
 		else
 			DoWincheckMatch();

@@ -22,6 +22,7 @@ CGameControllerLMS::CGameControllerLMS(CGameContext *pGameServer) : CGameControl
 		break;
 	}
 	m_GameFlags = GAMEFLAG_SURVIVAL;
+	m_IsRoundGameType = true;
 }
 
 // event
