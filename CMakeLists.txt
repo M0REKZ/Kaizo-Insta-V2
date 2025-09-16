@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.10)
 
 file(STRINGS src/game/version.h VERSION_LINE
   LIMIT_COUNT 1
@@ -792,6 +792,7 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   gameworld.h
   player.cpp
   player.h
+  commands.cpp
 )
 set(GAME_GENERATED_SERVER
   "src/game/generated/server_data.cpp"
@@ -1259,7 +1260,7 @@ foreach(target ${TARGETS_OWN})
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:Debug>:CONF_DEBUG>)
   target_include_directories(${target} PRIVATE ${CURL_INCLUDE_DIRS})
   target_include_directories(${target} PRIVATE ${ZLIB_INCLUDE_DIRS})
-  target_compile_features(${target} PUBLIC cxx_std_17)
+  target_compile_features(${target} PUBLIC cxx_std_20)
 endforeach()
 
 foreach(target ${TARGETS_DEP})

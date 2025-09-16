@@ -6,6 +6,7 @@
 #include <game/mapitems.h>
 
 #include "character.h"
+#include <game/gamecore.h>
 #include "laser.h"
 #include "projectile.h"
 
@@ -63,6 +64,8 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 
 	m_pPlayer = pPlayer;
 	m_Pos = Pos;
+
+	m_CheckPoint = -1;
 
 	m_Core.Reset();
 	m_Core.Init(&GameServer()->m_World.m_Core, GameServer()->Collision());
@@ -530,10 +533,10 @@ void CCharacter::Tick()
 	m_Core.Tick(true);
 
 	// handle death-tiles and leaving gamelayer
-	if(GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f)&CCollision::COLFLAG_DEATH ||
-		GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f)&CCollision::COLFLAG_DEATH ||
-		GameServer()->Collision()->GetCollisionAt(m_Pos.x-m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f)&CCollision::COLFLAG_DEATH ||
-		GameServer()->Collision()->GetCollisionAt(m_Pos.x-m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f)&CCollision::COLFLAG_DEATH ||
+	if(GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f) == TILE_DEATH ||
+		GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f) == TILE_DEATH ||
+		GameServer()->Collision()->GetCollisionAt(m_Pos.x-m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f) == TILE_DEATH ||
+		GameServer()->Collision()->GetCollisionAt(m_Pos.x-m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f) == TILE_DEATH ||
 		GameLayerClipped(m_Pos))
 	{
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
@@ -541,6 +544,11 @@ void CCharacter::Tick()
 
 	// handle Weapons
 	HandleWeapons();
+
+	// handle gamelayer
+	int Index = GameServer()->Collision()->GetMapIndex(m_Pos);
+	HandleTele(Index);
+	HandleSpeedups(Index);
 
 	// Previnput
 	m_PrevInput = m_Input;
@@ -846,4 +854,117 @@ void CCharacter::Snap(int SnappingClient)
 	}
 
 	pCharacter->m_PlayerFlags = GetPlayer()->m_PlayerFlags;
+}
+
+void CCharacter::HandleTele(int Index)
+{
+	const CTeleTile *pTeleLayer = GameServer()->Collision()->TeleLayer();
+	if(!pTeleLayer)
+		return;
+
+	int TeleNumber = pTeleLayer[Index].m_Number;
+	int TeleType = pTeleLayer[Index].m_Type;
+
+	if(TeleNumber < 1 || TeleType == TILE_TELEOUT || TeleType == TILE_TELECHECKOUT)
+	    return;
+
+	if(TeleType == TILE_CHECKPOINT )
+	{
+        m_CheckPoint = TeleNumber;
+        return;
+	}
+
+	int DestTeleNumber = -1;
+	vec2 DestPosition;
+
+	if(TeleType == TILE_TELECHECKIN || TeleType == TILE_TELECHECKINRED) // CFRM
+	{
+	    const std::vector<vec2> &CheckOuts = GameServer()->Collision()->TeleCheckOuts(m_CheckPoint);
+	    if(CheckOuts.empty())
+            return;
+        DestTeleNumber = clamp(static_cast<int>(random()), 0, static_cast<int>(CheckOuts.size()) - 1);
+        DestPosition = CheckOuts.at(DestTeleNumber);
+	}
+	if(TeleType == TILE_TELEIN || TeleType == TILE_TELEINRED) // NORMAL TELE IN
+    {
+        const std::vector<vec2> &Outs = GameServer()->Collision()->TeleOuts(TeleNumber);
+        if(Outs.empty())
+            return;
+        DestTeleNumber = clamp(static_cast<int>(random()), 0, static_cast<int>(Outs.size()) - 1);
+        DestPosition = Outs.at(DestTeleNumber);
+    }
+    if(DestTeleNumber != -1)
+    {
+        m_Core.m_Pos = DestPosition;
+        if((TeleType == TILE_TELECHECKINRED) || (TeleType == TILE_TELEINRED))
+        {
+           	m_Core.m_Vel = vec2(0,0);
+            m_Core.ResetHook();
+    	}
+    }
+}
+
+void CCharacter::HandleSpeedups(int Index)
+{
+	int Type = GameServer()->Collision()->IsSpeedup(Index);
+   	if(Type != 0)
+	{
+		vec2 Direction, TempVel = m_Core.m_Vel;
+		int Force, MaxSpeed = 0;
+		float TeeAngle, SpeederAngle, DiffAngle, SpeedLeft, TeeSpeed;
+		GameServer()->Collision()->GetSpeedup(Index, &Direction, &Force, &MaxSpeed);
+        if(Type == TILE_SPEEDUPOLD || Type == TILE_SPEEDUP)
+        {
+    		if(Force == 255 && MaxSpeed)
+    		{
+    			m_Core.m_Vel = Direction * (MaxSpeed / 5);
+    		}
+    		else
+    		{
+    			if(MaxSpeed > 0 && MaxSpeed < 5)
+    				MaxSpeed = 5;
+    			if(MaxSpeed > 0)
+    			{
+    				if(Direction.x > 0.0000001f)
+    					SpeederAngle = -std::atan(Direction.y / Direction.x);
+    				else if(Direction.x < 0.0000001f)
+    					SpeederAngle = std::atan(Direction.y / Direction.x) + 2.0f * std::asin(1.0f);
+    				else if(Direction.y > 0.0000001f)
+    					SpeederAngle = std::asin(1.0f);
+    				else
+    					SpeederAngle = std::asin(-1.0f);
+
+    				if(SpeederAngle < 0)
+    					SpeederAngle = 4.0f * std::asin(1.0f) + SpeederAngle;
+
+    				if(TempVel.x > 0.0000001f)
+    					TeeAngle = -std::atan(TempVel.y / TempVel.x);
+    				else if(TempVel.x < 0.0000001f)
+    					TeeAngle = std::atan(TempVel.y / TempVel.x) + 2.0f * std::asin(1.0f);
+    				else if(TempVel.y > 0.0000001f)
+    					TeeAngle = std::asin(1.0f);
+    				else
+    					TeeAngle = std::asin(-1.0f);
+
+    				if(TeeAngle < 0)
+    					TeeAngle = 4.0f * std::asin(1.0f) + TeeAngle;
+
+    				TeeSpeed = std::sqrt(std::pow(TempVel.x, 2) + std::pow(TempVel.y, 2));
+
+    				DiffAngle = SpeederAngle - TeeAngle;
+    				SpeedLeft = MaxSpeed / 5.0f - std::cos(DiffAngle) * TeeSpeed;
+    				if(absolute((int)SpeedLeft) > Force && SpeedLeft > 0.0000001f)
+    					TempVel += Direction * Force;
+    				else if(absolute((int)SpeedLeft) > Force)
+    					TempVel += Direction * -Force;
+    				else
+    					TempVel += Direction * SpeedLeft;
+    			}
+    			else
+    				TempVel += Direction * Force;
+
+    			m_Core.m_Vel = TempVel;
+    		}
+        }
+	}
 }

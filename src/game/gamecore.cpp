@@ -1,6 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "gamecore.h"
+#include <game/mapitems.h>
 
 const char *CTuningParams::m_apNames[] =
 {
@@ -197,10 +198,10 @@ void CCharacterCore::Tick(bool UseInput)
 		// make sure that the hook doesn't go though the ground
 		bool GoingToHitGround = false;
 		bool GoingToRetract = false;
-		int Hit = m_pCollision->IntersectLine(m_HookPos, NewPos, &NewPos, 0);
+		int Hit = m_pCollision->IntersectLine(m_HookPos, NewPos, &NewPos, 0, CCollision::WHOCHECKS_HOOK);
 		if(Hit)
 		{
-			if(Hit&CCollision::COLFLAG_NOHOOK)
+			if(Hit == TILE_NOHOOK)
 				GoingToRetract = true;
 			else
 				GoingToHitGround = true;
@@ -397,6 +398,13 @@ void CCharacterCore::Move()
 	}
 
 	m_Pos = NewPos;
+}
+
+void CCharacterCore::ResetHook()
+{
+    m_HookedPlayer = -1;
+    m_HookState = HOOK_RETRACTED;
+    m_HookPos = m_Pos;
 }
 
 void CCharacterCore::Write(CNetObj_CharacterCore *pObjCore)
