@@ -79,7 +79,7 @@ int CGameControllerCTF::OnCharacterDeath(class CCharacter *pVictim, class CPlaye
 	return HadFlag;
 }
 
-void CGameControllerCTF::DoWincheck()
+bool CGameControllerCTF::DoWincheckMatch()
 {
 	if(m_GameOverTick == -1 && !m_Warmup)
 	{

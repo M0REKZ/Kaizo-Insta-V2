@@ -4,6 +4,7 @@
 #define GAME_SERVER_GAMECONTROLLER_H
 
 #include <base/vmath.h>
+#include <game/generated/protocol.h>
 
 /*
 	Class: Game Controller
@@ -60,6 +61,8 @@ protected:
 	int m_GameFlags;
 	int m_UnbalancedTick;
 	bool m_ForceBalanced;
+	int m_RoundEnd;
+	bool m_StartingRound;
 
 public:
 	const char *m_pGameType;
@@ -70,13 +73,16 @@ public:
 	IGameController(class CGameContext *pGameServer);
 	virtual ~IGameController();
 
-	virtual void DoWincheck();
-
+	virtual bool DoWincheckMatch();
+	virtual void DoWincheckRound() {}
+	bool HasEnoughPlayers() const;
 	void DoWarmup(int Seconds);
 	void TogglePause();
 
 	void StartMatch();
 	void EndMatch();
+	void StartRound();
+	void EndRound();
 	void ChangeMap(const char *pToMap);
 
 	bool IsFriendlyFire(int ClientID1, int ClientID2);
@@ -146,6 +152,7 @@ public:
 
 	//
 	virtual bool CanSpawn(int Team, vec2 *pPos);
+	bool GetStartRespawnState() const;
 
 	/*
 
@@ -154,6 +161,8 @@ public:
 	virtual int GetAutoTeam(int NotThisID);
 	virtual bool CanJoinTeam(int Team, int NotThisID);
 	bool CheckTeamBalance();
+	void DoTeamBalance();
+	void DoTeamChange(class CPlayer *pPlayer, int Team, bool DoChatMsg=true);
 	bool CanChangeTeam(CPlayer *pPplayer, int JoinTeam);
 	int ClampTeam(int Team);
 
