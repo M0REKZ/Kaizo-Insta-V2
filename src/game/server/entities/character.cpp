@@ -857,6 +857,8 @@ void CCharacter::Snap(int SnappingClient)
 
 	pCharacter->m_PlayerFlags = GetPlayer()->m_PlayerFlags;
 
+	int Id = m_pPlayer->GetCID();
+
 	CNetObj_DDNetCharacter *pDDNetCharacter = Server()->SnapNewItem<CNetObj_DDNetCharacter>(Id);
 	if(!pDDNetCharacter)
 		return;

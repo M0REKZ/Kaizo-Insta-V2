@@ -551,6 +551,26 @@ void CGameContext::OnClientEnter(int ClientID)
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), m_apPlayers[ClientID]->GetTeam());
 	Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
+	{
+		CNetMsg_Sv_CommandInfoGroupStart Msg;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
+	}
+	for(const IConsole::CCommandInfo *pCmd = Console()->FirstCommandInfo(IConsole::ACCESS_LEVEL_ADMIN, CFGFLAG_CHAT);
+		pCmd; pCmd = pCmd->NextCommandInfo(IConsole::ACCESS_LEVEL_ADMIN, CFGFLAG_CHAT))
+	{
+		const char *pName = pCmd->m_pName;
+
+		CNetMsg_Sv_CommandInfo Msg;
+		Msg.m_pName = pName;
+		Msg.m_pArgsFormat = pCmd->m_pParams;
+		Msg.m_pHelpText = pCmd->m_pHelp;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
+	}
+	{
+		CNetMsg_Sv_CommandInfoGroupEnd Msg;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
+	}
+
 	m_VoteUpdate = true;
 	Server()->ExpireServerInfo();
 }
@@ -1528,47 +1548,6 @@ void CGameContext::ConsoleOutputCallback_Chat(const char *pLine, void *pUser)
 	pSelf->SendChatTarget(ClientID, pLine);
 
 	ReentryGuard-=1;
-}
-
-void CGameContext::ConRollback(IConsole::IResult *pResult, void *pUser)
-{
-	CGameContext *pSelf = (CGameContext *)pUser;
-	int ClientId = pSelf->m_ChatResponseTargetID;
-
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
-		return;
-
-	if(!pSelf->m_pController)
-		return;
-
-	if(!g_Config.m_SvRollback)
-	{
-		pSelf->SendChatTarget(ClientId, "Rollback is not allowed on this server.");
-		return;
-	}
-
-	if(!pSelf->m_apPlayers[ClientId])
-		return;
-
-	if(!pSelf->m_apPlayers[ClientId]->m_RollbackEnabled)
-	{
-		pSelf->m_apPlayers[ClientId]->m_RollbackEnabled = true;
-		pSelf->SendChatTarget(ClientId, "Rollback enabled.");
-
-		if(pSelf->Server()->GetClientVersion(ClientId) >= VERSION_DDNET_ANTIPING_PROJECTILE)
-		{
-			pSelf->SendChatTarget(ClientId, "DDNet Client detected, for correct rollback experience please set the following Antiping settings:");
-			pSelf->SendChatTarget(ClientId, "* Antiping: ON");
-			pSelf->SendChatTarget(ClientId, "* Antiping: predict other players: OFF");
-			pSelf->SendChatTarget(ClientId, "* Antiping: predict weapons: ON");
-			pSelf->SendChatTarget(ClientId, "* Antiping: predict grenade paths: ON");
-		}
-	}
-	else
-	{
-		pSelf->m_apPlayers[ClientId]->m_RollbackEnabled = false;
-		pSelf->SendChatTarget(ClientId, "Rollback disabled.");
-	}
 }
 
 void CGameContext::ConchainRollback(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)

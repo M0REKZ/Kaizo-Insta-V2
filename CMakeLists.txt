@@ -344,6 +344,26 @@ else()
 endif()
 
 ########################################################################
+# GENERATOR SPECIFICS
+########################################################################
+
+if(CMAKE_GENERATOR STREQUAL "Ninja")
+    # Force colored compiler diagnostics
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            add_compile_options(-fdiagnostics-color=always)
+            add_link_options(-fdiagnostics-color=always)
+        elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+            add_compile_options(-fcolor-diagnostics)
+            add_link_options(-fcolor-diagnostics)
+        endif()
+    endif()
+  
+    set(ENV{CLICOLOR_FORCE} "1")
+    set(ENV{FORCE_COLOR} "1")
+endif()
+
+########################################################################
 # DEPENDENCY COMPILATION
 ########################################################################
 
