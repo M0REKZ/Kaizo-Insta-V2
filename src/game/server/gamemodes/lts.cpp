@@ -28,16 +28,20 @@ CGameControllerLTS::CGameControllerLTS(CGameContext *pGameServer) : CGameControl
 // event
 void CGameControllerLTS::OnCharacterSpawn(class CCharacter *pChr)
 {
-	IGameController::OnCharacterSpawn(pChr);
+	// prevent respawn
+	pChr->GetPlayer()->m_RespawnDisabled = GetStartRespawnState();
+
+	if(m_InstagibWeapon != -1)
+	{
+		CGameControllerBasePvP::OnCharacterSpawn(pChr);
+		return;
+	}
 
 	// give start equipment
 	pChr->IncreaseArmor(5);
 	pChr->GiveWeapon(WEAPON_SHOTGUN, 10);
 	pChr->GiveWeapon(WEAPON_GRENADE, 10);
 	pChr->GiveWeapon(WEAPON_LASER, 5);
-
-	// prevent respawn
-	pChr->GetPlayer()->m_RespawnDisabled = GetStartRespawnState();
 }
 
 // game
