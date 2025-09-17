@@ -216,7 +216,7 @@ void CCharacterCore::Tick(bool UseInput)
 		{
 			if(Hit == TILE_NOHOOK)
 				GoingToRetract = true;
-			else
+			else if(Hit == TILE_SOLID)
 				GoingToHitGround = true;
 		}
 
