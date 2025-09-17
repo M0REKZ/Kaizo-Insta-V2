@@ -592,8 +592,6 @@ void IGameController::Tick()
 		}
 	}
 
-	printf("%d\n",m_GameOverTick);
-
 	if(m_RoundStartTick != Server()->Tick() && m_GameOverTick == -1 && !m_StartingRound && m_RoundEnd < 0 && !m_Warmup && !m_UnpauseTimer && HasEnoughPlayers())
 	{
 		if(m_IsRoundGameType)

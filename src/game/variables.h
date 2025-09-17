@@ -87,6 +87,9 @@ MACRO_CONFIG_INT(SvVoteKickBantime, sv_vote_kick_bantime, 5, 0, 1440, CFGFLAG_SE
 MACRO_CONFIG_STR(SvInstagibWeapon, sv_instagib_weapon, 256, "", CFGFLAG_SERVER, "Instagib weapon")
 MACRO_CONFIG_INT(SvInstagibMinDamage, sv_instagib_min_damage, 5, 0, 999, CFGFLAG_SERVER, "Minimal damage to kill on instagib")
 
+// rollback
+MACRO_CONFIG_INT(SvRollback, sv_rollback, 1, 0, 1, CFGFLAG_SERVER, "Allow /rollback usage")
+
 // debug
 #ifdef CONF_DEBUG // this one can crash the server if not used correctly
 	MACRO_CONFIG_INT(DbgDummies, dbg_dummies, 0, 0, 15, CFGFLAG_SERVER, "")

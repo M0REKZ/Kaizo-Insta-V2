@@ -9,6 +9,7 @@
 
 #include <game/gamecore.h>
 
+#include <game/server/rollback.h>
 class CCharacter : public CEntity
 {
 	MACRO_ALLOC_POOL_ID()
@@ -57,6 +58,8 @@ public:
 	bool IsAlive() const { return m_Alive; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 	class CCharacterCore &Core() { return m_Core; }
+
+	CRollbackPositionHistory m_Positions[ROLLBACK_POSITION_HISTORY];
 
 private:
 	// player controlling this character

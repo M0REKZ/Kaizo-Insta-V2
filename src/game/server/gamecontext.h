@@ -16,6 +16,9 @@
 #include "gameworld.h"
 #include "player.h"
 
+#include <game/server/rollback.h> // ddnet-insta rollback
+
+
 /*
 	Tick
 		Game Context (CGameContext::tick)
@@ -68,6 +71,9 @@ class CGameContext : public IGameServer
 	static void ConVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConInfo(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+
+	static void ConRollback(IConsole::IResult *pResult, void *pUserData);
+	static void ConchainRollback(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
@@ -185,6 +191,9 @@ public:
 	virtual const char *GameType();
 	virtual const char *Version();
 	virtual const char *NetVersion();
+
+	CRollback m_Rollback; //ddnet-insta rollback
+	virtual void SetPlayerLastAckedSnapshot(int ClientId, int Tick) override; //ddnet-insta rollback
 };
 
 inline int CmaskAll() { return -1; }

@@ -103,6 +103,11 @@ public:
 	bool m_RespawnDisabled;
 	bool m_DeadSpecMode;
 
+	// Enabled rollback for this player
+	bool m_RollbackEnabled = false;
+	// Rollback LastAckedSnapshot
+	int m_LastAckedSnapshot = -1;
+
 private:
 	CCharacter *m_pCharacter;
 	CGameContext *m_pGameServer;

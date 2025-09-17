@@ -3,13 +3,12 @@
 #include "gamecore.h"
 #include <game/mapitems.h>
 
-const char *CTuningParams::m_apNames[] =
-{
-	#define MACRO_TUNING_PARAM(Name,ScriptName,Value) #ScriptName,
-	#include "tuning.h"
-	#undef MACRO_TUNING_PARAM
+const char *CTuningParams::ms_apNames[] =
+	{
+#define MACRO_TUNING_PARAM(Name, ScriptName, Value, Description) #ScriptName,
+#include "tuning.h"
+#undef MACRO_TUNING_PARAM
 };
-
 
 bool CTuningParams::Set(int Index, float Value)
 {
@@ -19,7 +18,7 @@ bool CTuningParams::Set(int Index, float Value)
 	return true;
 }
 
-bool CTuningParams::Get(int Index, float *pValue)
+bool CTuningParams::Get(int Index, float *pValue) const
 {
 	if(Index < 0 || Index >= Num())
 		return false;
@@ -30,18 +29,32 @@ bool CTuningParams::Get(int Index, float *pValue)
 bool CTuningParams::Set(const char *pName, float Value)
 {
 	for(int i = 0; i < Num(); i++)
-		if(str_comp_nocase(pName, m_apNames[i]) == 0)
+		if(str_comp_nocase(pName, Name(i)) == 0)
 			return Set(i, Value);
 	return false;
 }
 
-bool CTuningParams::Get(const char *pName, float *pValue)
+bool CTuningParams::Get(const char *pName, float *pValue) const
 {
 	for(int i = 0; i < Num(); i++)
-		if(str_comp_nocase(pName, m_apNames[i]) == 0)
+		if(str_comp_nocase(pName, Name(i)) == 0)
 			return Get(i, pValue);
 
 	return false;
+}
+
+float CTuningParams::GetWeaponFireDelay(int Weapon) const
+{
+	switch(Weapon)
+	{
+	case WEAPON_HAMMER: return (float)m_HammerHitFireDelay / 1000.0f;
+	case WEAPON_GUN: return (float)m_GunFireDelay / 1000.0f;
+	case WEAPON_SHOTGUN: return (float)m_ShotgunFireDelay / 1000.0f;
+	case WEAPON_GRENADE: return (float)m_GrenadeFireDelay / 1000.0f;
+	case WEAPON_LASER: return (float)m_LaserFireDelay / 1000.0f;
+	case WEAPON_NINJA: return (float)m_NinjaFireDelay / 1000.0f;
+	default: dbg_assert(false, "invalid weapon"); return 0.0f; // this value should not be reached
+	}
 }
 
 float HermiteBasis1(float v)

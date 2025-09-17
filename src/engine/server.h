@@ -140,6 +140,8 @@ public:
 	 * @param i The client id.
 	 */
 	virtual void OnUpdatePlayerServerInfo(CJsonStringWriter *pJSonWriter, int Id) = 0;
+	
+	virtual void SetPlayerLastAckedSnapshot(int ClientId, int Tick){}; //ddnet-insta rollback
 };
 
 extern IGameServer *CreateGameServer();
