@@ -856,6 +856,87 @@ void CCharacter::Snap(int SnappingClient)
 	}
 
 	pCharacter->m_PlayerFlags = GetPlayer()->m_PlayerFlags;
+
+	CNetObj_DDNetCharacter *pDDNetCharacter = Server()->SnapNewItem<CNetObj_DDNetCharacter>(Id);
+	if(!pDDNetCharacter)
+		return;
+
+	pDDNetCharacter->m_Flags = 0;
+	/*if(m_Core.m_Solo)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_SOLO;
+	if(m_Core.m_Super)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_SUPER;
+	if(m_Core.m_Invincible)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_INVINCIBLE;
+	if(m_Core.m_EndlessHook)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_ENDLESS_HOOK;
+	if(m_Core.m_CollisionDisabled || !GetTuning(m_TuneZone)->m_PlayerCollision)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_COLLISION_DISABLED;
+	if(m_Core.m_HookHitDisabled || !GetTuning(m_TuneZone)->m_PlayerHooking)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_HOOK_HIT_DISABLED;
+	if(m_Core.m_EndlessJump)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_ENDLESS_JUMP;
+	if(m_Core.m_Jetpack)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_JETPACK;
+	if(m_Core.m_HammerHitDisabled)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_HAMMER_HIT_DISABLED;
+	if(m_Core.m_ShotgunHitDisabled)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_SHOTGUN_HIT_DISABLED;
+	if(m_Core.m_GrenadeHitDisabled)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_GRENADE_HIT_DISABLED;
+	if(m_Core.m_LaserHitDisabled)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_LASER_HIT_DISABLED;
+	if(m_Core.m_HasTelegunGun)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_GUN;
+	if(m_Core.m_HasTelegunGrenade)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_GRENADE;
+	if(m_Core.m_HasTelegunLaser)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_LASER;*/
+	if(m_aWeapons[WEAPON_HAMMER].m_Got)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_HAMMER;
+	if(m_aWeapons[WEAPON_GUN].m_Got)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GUN;
+	if(m_aWeapons[WEAPON_SHOTGUN].m_Got)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_SHOTGUN;
+	if(m_aWeapons[WEAPON_GRENADE].m_Got)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GRENADE;
+	if(m_aWeapons[WEAPON_LASER].m_Got)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_LASER;
+	if(m_ActiveWeapon == WEAPON_NINJA)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
+	/*if(m_Core.m_LiveFrozen)
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_MOVEMENTS_DISABLED;*/
+
+	//pDDNetCharacter->m_FreezeEnd = m_Core.m_DeepFrozen ? -1 : m_FreezeTime == 0 ? 0 : Server()->Tick() + m_FreezeTime;
+	pDDNetCharacter->m_Jumps = 2;
+	//pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
+	//pDDNetCharacter->m_StrongWeakId = m_StrongWeakId;
+
+	// Display Information
+	pDDNetCharacter->m_JumpedTotal = clamp(m_Core.m_Jumped,0,2);
+	pDDNetCharacter->m_NinjaActivationTick = m_Ninja.m_ActivationTick;
+	//pDDNetCharacter->m_FreezeStart = m_Core.m_FreezeStart;
+	/*if(m_Core.m_IsInFreeze)
+	{
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_IN_FREEZE;
+	}*/
+	/*if(Teams()->IsPractice(Team()))
+	{
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_PRACTICE_MODE;
+	}
+	if(Teams()->TeamLocked(Team()))
+	{
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_LOCK_MODE;
+	}
+	if(Teams()->TeamFlock(Team()))
+	{
+		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TEAM0_MODE;
+	}*/
+	pDDNetCharacter->m_TargetX = m_Core.m_Input.m_TargetX;
+	pDDNetCharacter->m_TargetY = m_Core.m_Input.m_TargetY;
+
+	// -1 is the default value, SnapNewItem zeroes the object, so it would incorrectly become 0
+	pDDNetCharacter->m_TuneZoneOverride = -1;
 }
 
 void CCharacter::HandleTele(int Index)
