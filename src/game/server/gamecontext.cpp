@@ -15,6 +15,7 @@
 #include "gamemodes/mod.h"
 #include "gamemodes/lms.h"
 #include "gamemodes/lts.h"
+#include "gamemodes/block.h"
 
 enum
 {
@@ -1635,6 +1636,8 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		m_pController = new CGameControllerLMS(this);
 	else if(str_comp_nocase(g_Config.m_SvGametype, "lts") == 0)
 		m_pController = new CGameControllerLTS(this);
+	else if(str_comp_nocase(g_Config.m_SvGametype, "block") == 0)
+		m_pController = new CGameControllerBLOCK(this);
 	else
 		m_pController = new CGameControllerDM(this);
 

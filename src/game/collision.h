@@ -19,7 +19,7 @@ class CCollision
 	int m_Height;
 	class CLayers *m_pLayers;
 
-	bool IsTileSolid(int x, int y);
+	bool IsTileSolid(int x, int y) { return IsSolid(GetTile(x, y)); }
 	int GetTile(int x, int y);
 	int GetTileF(int x, int y);
 
@@ -37,6 +37,7 @@ public:
 	bool CheckPoint(vec2 Pos) { return CheckPoint(Pos.x, Pos.y); }
 	int GetCollisionAt(float x, float y) { return GetTile(round_to_int(x), round_to_int(y)); }
 	int GetCollisionAtFront(float x, float y) { return GetTileF(round_to_int(x), round_to_int(y)); }
+	int IsSolid(int Index) { return (Index == TILE_NOHOOK || Index == TILE_SOLID); }
 	int GetWidth() { return m_Width; };
 	int GetHeight() { return m_Height; };
 	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int WhoChecks = 0);

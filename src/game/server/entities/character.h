@@ -55,6 +55,9 @@ public:
 
 	void SetEmote(int Emote, int Tick);
 
+	void Freeze(int Length);
+	bool IsFrozen();
+
 	bool IsAlive() const { return m_Alive; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 	class CCharacterCore &Core() { return m_Core; }
@@ -112,6 +115,9 @@ private:
 	int m_Armor;
 
 	int m_CheckPoint;
+	int m_FreezeEnd;
+	int m_FreezeStart;
+	bool m_DeepFrozen;
 
 	// ninja
 	struct
@@ -124,6 +130,8 @@ private:
 
 	void HandleTele(int Index);
 	void HandleSpeedups(int Index);
+	void HandleTiles(int Index);
+	
 
 	// the player core for the physics
 	CCharacterCore m_Core;

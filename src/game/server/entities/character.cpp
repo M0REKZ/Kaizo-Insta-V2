@@ -66,6 +66,9 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_Pos = Pos;
 
 	m_CheckPoint = -1;
+	m_FreezeEnd = 0;
+	m_FreezeStart = 0;
+	m_DeepFrozen = false;
 
 	m_Core.Reset();
 	m_Core.Init(&GameServer()->m_World.m_Core, GameServer()->Collision());
@@ -247,7 +250,7 @@ void CCharacter::HandleWeaponSwitch()
 
 void CCharacter::FireWeapon()
 {
-	if(m_ReloadTimer != 0)
+	if(m_ReloadTimer != 0 || IsFrozen())
 		return;
 
 	DoWeaponSwitch();
@@ -529,26 +532,22 @@ void CCharacter::Tick()
 		m_pPlayer->m_ForceBalanced = false;
 	}
 
+	if(IsFrozen())
+	{
+		ResetInput();
+	}
+
 	m_Core.m_Input = m_Input;
 	m_Core.Tick(true);
 
-	// handle death-tiles and leaving gamelayer
-	if(GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f) == TILE_DEATH ||
-		GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f) == TILE_DEATH ||
-		GameServer()->Collision()->GetCollisionAt(m_Pos.x-m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f) == TILE_DEATH ||
-		GameServer()->Collision()->GetCollisionAt(m_Pos.x-m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f) == TILE_DEATH ||
-		GameLayerClipped(m_Pos))
-	{
-		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
-	}
+	// handle Gamelayer
+	int Index = GameServer()->Collision()->GetMapIndex(m_Pos);
+	HandleTiles(Index);
+	HandleTele(Index);
+	HandleSpeedups(Index);
 
 	// handle Weapons
 	HandleWeapons();
-
-	// handle gamelayer
-	int Index = GameServer()->Collision()->GetMapIndex(m_Pos);
-	HandleTele(Index);
-	HandleSpeedups(Index);
 
 	// Previnput
 	m_PrevInput = m_Input;
@@ -894,22 +893,21 @@ void CCharacter::Snap(int SnappingClient)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_GRENADE;
 	if(m_Core.m_HasTelegunLaser)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_LASER;*/
-	if(m_aWeapons[WEAPON_HAMMER].m_Got)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_HAMMER;
-	if(m_aWeapons[WEAPON_GUN].m_Got)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GUN;
-	if(m_aWeapons[WEAPON_SHOTGUN].m_Got)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_SHOTGUN;
-	if(m_aWeapons[WEAPON_GRENADE].m_Got)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GRENADE;
-	if(m_aWeapons[WEAPON_LASER].m_Got)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_LASER;
-	if(m_ActiveWeapon == WEAPON_NINJA)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
+	if (m_aWeapons[WEAPON_HAMMER].m_Got)     pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_HAMMER;
+	if (m_aWeapons[WEAPON_GUN].m_Got)        pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GUN;
+	if (m_aWeapons[WEAPON_SHOTGUN].m_Got)    pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_SHOTGUN;
+	if (m_aWeapons[WEAPON_GRENADE].m_Got)    pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GRENADE;
+	if (m_aWeapons[WEAPON_LASER].m_Got)    	 pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_LASER;
+	if (m_aWeapons[WEAPON_NINJA].m_Got)   	 pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
 	/*if(m_Core.m_LiveFrozen)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_MOVEMENTS_DISABLED;*/
+	
+	if(IsFrozen())
+    {
+        pDDNetCharacter->m_FreezeStart = m_DeepFrozen ? -1 : m_FreezeStart;
+        pDDNetCharacter->m_FreezeEnd = m_FreezeEnd+1;
+    }
 
-	//pDDNetCharacter->m_FreezeEnd = m_Core.m_DeepFrozen ? -1 : m_FreezeTime == 0 ? 0 : Server()->Tick() + m_FreezeTime;
 	pDDNetCharacter->m_Jumps = 2;
 	//pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
 	//pDDNetCharacter->m_StrongWeakId = m_StrongWeakId;
@@ -917,7 +915,6 @@ void CCharacter::Snap(int SnappingClient)
 	// Display Information
 	pDDNetCharacter->m_JumpedTotal = clamp(m_Core.m_Jumped,0,2);
 	pDDNetCharacter->m_NinjaActivationTick = m_Ninja.m_ActivationTick;
-	//pDDNetCharacter->m_FreezeStart = m_Core.m_FreezeStart;
 	/*if(m_Core.m_IsInFreeze)
 	{
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_IN_FREEZE;
@@ -1052,4 +1049,45 @@ void CCharacter::HandleSpeedups(int Index)
     		}
         }
 	}
+}
+
+void CCharacter::HandleTiles(int Index)
+{
+	// handle death-tiles and leaving gamelayer
+	if(GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f) == TILE_DEATH ||
+		GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f) == TILE_DEATH ||
+		GameServer()->Collision()->GetCollisionAt(m_Pos.x-m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f) == TILE_DEATH ||
+		GameServer()->Collision()->GetCollisionAt(m_Pos.x-m_ProximityRadius/3.f, m_Pos.y+m_ProximityRadius/3.f) == TILE_DEATH ||
+		GameLayerClipped(m_Pos))
+	{
+		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
+	}
+
+	int Tile = GameServer()->Collision()->GetCollisionAt(m_Pos.x, m_Pos.y);
+	int FrontTile = GameServer()->Collision()->GetCollisionAtFront(m_Pos.x, m_Pos.y);
+
+	if(Tile == TILE_FREEZE || FrontTile == TILE_FREEZE)
+		Freeze(3);
+	if(Tile == TILE_UNFREEZE || FrontTile == TILE_UNFREEZE)
+		Freeze(0);
+	if(Tile == TILE_DEEPFREEZE || FrontTile == TILE_DEEPFREEZE)
+		m_DeepFrozen = true;
+	if(Tile == TILE_DEEPUNFREEZE || FrontTile == TILE_DEEPUNFREEZE)
+	{	
+		m_DeepFrozen = false;
+		Freeze(3);
+	}
+}
+
+void CCharacter::Freeze(int Length)
+{
+    m_FreezeEnd = Server()->Tick() + Length * SERVER_TICK_SPEED;
+    m_FreezeStart = Server()->Tick();
+}
+
+bool CCharacter::IsFrozen()
+{
+    if(m_FreezeEnd > Server()->Tick() || m_DeepFrozen)
+        return true;
+    return false;
 }

@@ -800,6 +800,8 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   gamecontroller.h
   gamemodes/base_pvp.cpp
   gamemodes/base_pvp.h
+  gamemodes/block.cpp
+  gamemodes/block.h
   gamemodes/ctf.cpp
   gamemodes/ctf.h
   gamemodes/dm.cpp
