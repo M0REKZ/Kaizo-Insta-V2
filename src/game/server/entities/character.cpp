@@ -69,6 +69,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_FreezeEnd = 0;
 	m_FreezeStart = 0;
 	m_DeepFrozen = false;
+	m_LiveFrozen = false;
 
 	m_Core.Reset();
 	m_Core.Init(&GameServer()->m_World.m_Core, GameServer()->Collision());
@@ -163,7 +164,7 @@ void CCharacter::HandleNinja()
 
 			for (int i = 0; i < Num; ++i)
 			{
-				if (aEnts[i] == this)
+				if (aEnts[i] == this || aEnts[i]->IsSolo())
 					continue;
 
 				// make sure we haven't Hit this object before
@@ -260,7 +261,6 @@ void CCharacter::FireWeapon()
 	if(m_ActiveWeapon == WEAPON_GRENADE || m_ActiveWeapon == WEAPON_SHOTGUN || m_ActiveWeapon == WEAPON_RIFLE)
 		FullAuto = true;
 
-
 	// check if we gonna fire
 	bool WillFire = false;
 	if(CountInput(m_LatestPrevInput.m_Fire, m_LatestInput.m_Fire).m_Presses)
@@ -304,7 +304,7 @@ void CCharacter::FireWeapon()
 			{
 				CCharacter *pTarget = apEnts[i];
 
-				if ((pTarget == this) || GameServer()->Collision()->IntersectLine(ProjStartPos, pTarget->m_Pos, NULL, NULL))
+				if ((pTarget == this) || pTarget->IsSolo())
 					continue;
 
 				// set his velocity to fast upward (for now)
@@ -536,13 +536,18 @@ void CCharacter::Tick()
 	{
 		ResetInput();
 	}
+	if(m_LiveFrozen)
+	{
+		m_Input.m_Direction = 0;
+		m_Input.m_Jump = 0;
+	}
 
 	m_Core.m_Input = m_Input;
 	m_Core.Tick(true);
 
 	// handle Gamelayer
 	int Index = GameServer()->Collision()->GetMapIndex(m_Pos);
-	HandleTiles(Index);
+	HandleTiles();
 	HandleTele(Index);
 	HandleSpeedups(Index);
 
@@ -614,11 +619,11 @@ void CCharacter::TickDefered()
 	if(Events&COREEVENT_HOOK_HIT_NOHOOK) GameServer()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH, Mask);
 
 
-	if(m_pPlayer->GetTeam() == TEAM_SPECTATORS)
-	{
-		m_Pos.x = m_Input.m_TargetX;
-		m_Pos.y = m_Input.m_TargetY;
-	}
+	// if(m_pPlayer->GetTeam() == TEAM_SPECTATORS)
+	// {
+	// 	m_Pos.x = m_Input.m_TargetX;
+	// 	m_Pos.y = m_Input.m_TargetY;
+	// }
 
 	// update the m_SendCore if needed
 	{
@@ -850,7 +855,7 @@ void CCharacter::Snap(int SnappingClient)
 
 	if(pCharacter->m_Emote == EMOTE_NORMAL)
 	{
-		if(250 - ((Server()->Tick() - m_LastAction)%(250)) < 5)
+		if(IsFrozen() || (250 - ((Server()->Tick() - m_LastAction)%(250)) < 5))
 			pCharacter->m_Emote = EMOTE_BLINK;
 	}
 
@@ -863,78 +868,34 @@ void CCharacter::Snap(int SnappingClient)
 		return;
 
 	pDDNetCharacter->m_Flags = 0;
-	/*if(m_Core.m_Solo)
+	if(m_Core.m_Solo)
 		pDDNetCharacter->m_Flags |= CHARACTERFLAG_SOLO;
-	if(m_Core.m_Super)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_SUPER;
-	if(m_Core.m_Invincible)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_INVINCIBLE;
-	if(m_Core.m_EndlessHook)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_ENDLESS_HOOK;
-	if(m_Core.m_CollisionDisabled || !GetTuning(m_TuneZone)->m_PlayerCollision)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_COLLISION_DISABLED;
-	if(m_Core.m_HookHitDisabled || !GetTuning(m_TuneZone)->m_PlayerHooking)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_HOOK_HIT_DISABLED;
-	if(m_Core.m_EndlessJump)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_ENDLESS_JUMP;
-	if(m_Core.m_Jetpack)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_JETPACK;
-	if(m_Core.m_HammerHitDisabled)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_HAMMER_HIT_DISABLED;
-	if(m_Core.m_ShotgunHitDisabled)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_SHOTGUN_HIT_DISABLED;
-	if(m_Core.m_GrenadeHitDisabled)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_GRENADE_HIT_DISABLED;
-	if(m_Core.m_LaserHitDisabled)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_LASER_HIT_DISABLED;
-	if(m_Core.m_HasTelegunGun)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_GUN;
-	if(m_Core.m_HasTelegunGrenade)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_GRENADE;
-	if(m_Core.m_HasTelegunLaser)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TELEGUN_LASER;*/
+	// if(m_Core.m_Invincible)
+	// 	pDDNetCharacter->m_Flags |= CHARACTERFLAG_INVINCIBLE;
+	// if(m_Core.m_CollisionDisabled || !GetTuning(m_TuneZone)->m_PlayerCollision)
+	// 	pDDNetCharacter->m_Flags |= CHARACTERFLAG_COLLISION_DISABLED;
+	// if(m_Core.m_HookHitDisabled || !GetTuning(m_TuneZone)->m_PlayerHooking)
+	// 	pDDNetCharacter->m_Flags |= CHARACTERFLAG_HOOK_HIT_DISABLED;
 	if (m_aWeapons[WEAPON_HAMMER].m_Got)     pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_HAMMER;
 	if (m_aWeapons[WEAPON_GUN].m_Got)        pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GUN;
 	if (m_aWeapons[WEAPON_SHOTGUN].m_Got)    pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_SHOTGUN;
 	if (m_aWeapons[WEAPON_GRENADE].m_Got)    pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_GRENADE;
 	if (m_aWeapons[WEAPON_LASER].m_Got)    	 pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_LASER;
 	if (m_aWeapons[WEAPON_NINJA].m_Got)   	 pDDNetCharacter->m_Flags |= CHARACTERFLAG_WEAPON_NINJA;
-	/*if(m_Core.m_LiveFrozen)
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_MOVEMENTS_DISABLED;*/
-	
+	if (m_LiveFrozen)					     pDDNetCharacter->m_Flags |= CHARACTERFLAG_MOVEMENTS_DISABLED;
 	if(IsFrozen())
     {
         pDDNetCharacter->m_FreezeStart = m_DeepFrozen ? -1 : m_FreezeStart;
         pDDNetCharacter->m_FreezeEnd = m_FreezeEnd+1;
+		if(IsInFreezeTile())
+			pDDNetCharacter->m_Flags |= CHARACTERFLAG_IN_FREEZE;
     }
-
 	pDDNetCharacter->m_Jumps = 2;
-	//pDDNetCharacter->m_TeleCheckpoint = m_TeleCheckpoint;
-	//pDDNetCharacter->m_StrongWeakId = m_StrongWeakId;
-
-	// Display Information
+	pDDNetCharacter->m_TeleCheckpoint = m_CheckPoint;
 	pDDNetCharacter->m_JumpedTotal = clamp(m_Core.m_Jumped,0,2);
 	pDDNetCharacter->m_NinjaActivationTick = m_Ninja.m_ActivationTick;
-	/*if(m_Core.m_IsInFreeze)
-	{
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_IN_FREEZE;
-	}*/
-	/*if(Teams()->IsPractice(Team()))
-	{
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_PRACTICE_MODE;
-	}
-	if(Teams()->TeamLocked(Team()))
-	{
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_LOCK_MODE;
-	}
-	if(Teams()->TeamFlock(Team()))
-	{
-		pDDNetCharacter->m_Flags |= CHARACTERFLAG_TEAM0_MODE;
-	}*/
 	pDDNetCharacter->m_TargetX = m_Core.m_Input.m_TargetX;
 	pDDNetCharacter->m_TargetY = m_Core.m_Input.m_TargetY;
-
-	// -1 is the default value, SnapNewItem zeroes the object, so it would incorrectly become 0
 	pDDNetCharacter->m_TuneZoneOverride = -1;
 }
 
@@ -1051,7 +1012,7 @@ void CCharacter::HandleSpeedups(int Index)
 	}
 }
 
-void CCharacter::HandleTiles(int Index)
+void CCharacter::HandleTiles()
 {
 	// handle death-tiles and leaving gamelayer
 	if(GameServer()->Collision()->GetCollisionAt(m_Pos.x+m_ProximityRadius/3.f, m_Pos.y-m_ProximityRadius/3.f) == TILE_DEATH ||
@@ -1066,7 +1027,7 @@ void CCharacter::HandleTiles(int Index)
 	int Tile = GameServer()->Collision()->GetCollisionAt(m_Pos.x, m_Pos.y);
 	int FrontTile = GameServer()->Collision()->GetCollisionAtFront(m_Pos.x, m_Pos.y);
 
-	if(Tile == TILE_FREEZE || FrontTile == TILE_FREEZE)
+	if(IsInFreezeTile())
 		Freeze(3);
 	if(Tile == TILE_UNFREEZE || FrontTile == TILE_UNFREEZE)
 		Freeze(0);
@@ -1077,6 +1038,16 @@ void CCharacter::HandleTiles(int Index)
 		m_DeepFrozen = false;
 		Freeze(3);
 	}
+	if(Tile == TILE_LIVEFREEZE || FrontTile == TILE_LIVEFREEZE)
+		m_LiveFrozen = true;
+	if(Tile == TILE_UNLIVEFREEZE || FrontTile == TILE_UNLIVEFREEZE)
+		m_LiveFrozen = false;
+	if(Tile == TILE_LIVEFREEZE || FrontTile == TILE_LIVEFREEZE)
+		m_Core.m_Pos.x++;
+	if(Tile == TILE_SOLO || FrontTile == TILE_SOLO)
+		m_Core.m_Solo = true;
+	if(Tile == TILE_UNSOLO || FrontTile == TILE_UNSOLO)
+		m_Core.m_Solo = false;
 }
 
 void CCharacter::Freeze(int Length)
@@ -1090,4 +1061,11 @@ bool CCharacter::IsFrozen()
     if(m_FreezeEnd > Server()->Tick() || m_DeepFrozen)
         return true;
     return false;
+}
+
+bool CCharacter::IsInFreezeTile()
+{
+	int Tile = GameServer()->Collision()->GetCollisionAt(m_Pos.x, m_Pos.y);
+	int FrontTile = GameServer()->Collision()->GetCollisionAtFront(m_Pos.x, m_Pos.y);
+	return (Tile == TILE_FREEZE || FrontTile == TILE_FREEZE);
 }

@@ -57,8 +57,10 @@ public:
 
 	void Freeze(int Length);
 	bool IsFrozen();
+	bool IsInFreezeTile();
 
 	bool IsAlive() const { return m_Alive; }
+	bool IsSolo() { return m_Core.m_Solo; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 	class CCharacterCore &Core() { return m_Core; }
 
@@ -117,6 +119,7 @@ private:
 	int m_CheckPoint;
 	int m_FreezeEnd;
 	int m_FreezeStart;
+	bool m_LiveFrozen;
 	bool m_DeepFrozen;
 
 	// ninja
@@ -130,7 +133,7 @@ private:
 
 	void HandleTele(int Index);
 	void HandleSpeedups(int Index);
-	void HandleTiles(int Index);
+	void HandleTiles();
 	
 
 	// the player core for the physics

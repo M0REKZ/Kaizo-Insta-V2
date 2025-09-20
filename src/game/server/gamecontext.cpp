@@ -1599,7 +1599,9 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("vote", "r", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 
 	Console()->Register("info", "", CFGFLAG_CHAT, ConInfo, this, "info");
-	Console()->Register("rollback", "", CFGFLAG_CHAT, ConRollback, this, "info");
+	Console()->Register("rollback", "", CFGFLAG_CHAT, ConRollback, this, "rollback");
+	Console()->Register("spec", "", CFGFLAG_CHAT, ConSpec, this, "spec");
+	Console()->Register("pause", "", CFGFLAG_CHAT, ConSpec, this, "spec");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 	Console()->Chain("sv_rollback", ConchainRollback, this);

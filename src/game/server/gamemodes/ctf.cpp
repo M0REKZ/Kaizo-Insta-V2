@@ -101,6 +101,7 @@ bool CGameControllerCTF::DoWincheckMatch()
 			}
 		}
 	}
+	return true;
 }
 
 bool CGameControllerCTF::CanBeMovedOnBalance(int ClientID)

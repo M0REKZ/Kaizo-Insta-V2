@@ -68,3 +68,18 @@ void CGameContext::ConRollback(IConsole::IResult *pResult, void *pUser)
 		pSelf->SendChatTarget(ClientId, "Rollback disabled.");
 	}
 }
+
+void CGameContext::ConSpec(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+    int ClientID = pResult->GetClientID();
+    if(ClientID < 0 || ClientID > MAX_CLIENTS)
+        return;
+
+	if(pSelf->m_apPlayers[ClientID]->GetTeam() == TEAM_RED)
+		pSelf->m_apPlayers[ClientID]->SetTeam(TEAM_SPECTATORS, false, false);
+	else 
+		pSelf->m_apPlayers[ClientID]->SetTeam(TEAM_RED, false, false);
+}
+
