@@ -156,6 +156,16 @@ void CPlayer::Snap(int SnappingClient)
 		pSpectatorInfo->m_X = m_ViewPos.x;
 		pSpectatorInfo->m_Y = m_ViewPos.y;
 	}
+
+	CNetObj_DDNetPlayer *pDDNetInfo = Server()->SnapNewItem<CNetObj_DDNetPlayer>(m_ClientID);
+	if(!pDDNetInfo)
+		return;
+
+	if(m_Team == TEAM_SPECTATORS && GetCharacter())
+	{
+		pDDNetInfo->m_Flags = EXPLAYERFLAG_SPEC;
+		pPlayerInfo->m_Team = TEAM_RED;
+	}
 }
 
 void CPlayer::OnDisconnect(const char *pReason)

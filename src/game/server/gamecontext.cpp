@@ -273,8 +273,48 @@ void CGameContext::SendEmoticon(int ClientID, int Emoticon)
 	Msg.m_ClientId = ClientID;
 	Msg.m_Emoticon = Emoticon;
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
-}
 
+	CPlayer *pPlayer = m_apPlayers[ClientID];
+	CCharacter *pChr = pPlayer->GetCharacter();
+
+	// player needs a character to send emotes
+	if(!pChr)
+		return;
+
+	int EmoteType = EMOTE_NORMAL;
+	switch(Emoticon)
+	{
+	case EMOTICON_EXCLAMATION:
+	case EMOTICON_GHOST:
+	case EMOTICON_QUESTION:
+	case EMOTICON_WTF:
+		EmoteType = EMOTE_SURPRISE;
+		break;
+	case EMOTICON_DOTDOT:
+	case EMOTICON_DROP:
+	case EMOTICON_ZZZ:
+		EmoteType = EMOTE_BLINK;
+		break;
+	case EMOTICON_EYES:
+	case EMOTICON_HEARTS:
+	case EMOTICON_MUSIC:
+		EmoteType = EMOTE_HAPPY;
+		break;
+	case EMOTICON_OOP:
+	case EMOTICON_SORRY:
+	case EMOTICON_SUSHI:
+		EmoteType = EMOTE_PAIN;
+		break;
+	case EMOTICON_DEVILTEE:
+	case EMOTICON_SPLATTEE:
+	case EMOTICON_ZOMG:
+		EmoteType = EMOTE_ANGRY;
+		break;
+	default:
+		break;
+	}
+	pChr->SetEmote(EmoteType, Server()->Tick() + 2 * Server()->TickSpeed());
+}
 void CGameContext::SendWeaponPickup(int ClientID, int Weapon)
 {
 	CNetMsg_Sv_WeaponPickup Msg;

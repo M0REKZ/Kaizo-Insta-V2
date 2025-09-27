@@ -327,6 +327,8 @@ void CCharacter::FireWeapon()
 			// if we Hit anything, we have to wait for the reload
 			if(Hits)
 				m_ReloadTimer = Server()->TickSpeed()/3;
+			else
+				m_ReloadTimer = 1; // Not to set the reloadtimer as hit
 
 		} break;
 
