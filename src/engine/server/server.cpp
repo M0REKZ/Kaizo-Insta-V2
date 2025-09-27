@@ -31,8 +31,7 @@
 
 #include <game/version.h>
 
-#include <mastersrv/mastersrv.h>
-
+#include "mastersrv.h"
 #include "register.h"
 #include "server.h"
 

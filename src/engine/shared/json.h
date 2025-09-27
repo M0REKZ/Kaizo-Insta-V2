@@ -1,7 +1,7 @@
 #ifndef ENGINE_SHARED_JSON_H
 #define ENGINE_SHARED_JSON_H
 
-#include <engine/external/json-parser/json.h>
+#include <engine/external/json/json.h>
 
 const struct _json_value *json_object_get(const json_value *object, const char *index);
 const struct _json_value *json_array_get(const json_value *array, int index);

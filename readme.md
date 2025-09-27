@@ -13,14 +13,10 @@ Contributions are welcome :D
 ## Gametypes:
 
 - CTF
-- iCTF
-- gCTF
 - DM
-- iDM
-- gDM
+- LMS
 - TDM
-- iTDM
-- gTDM
+- LTS
 
 ## Features:
 
