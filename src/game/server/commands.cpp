@@ -79,13 +79,13 @@ void CGameContext::ConSpec(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_apPlayers[ClientID]->SetTeam(TEAM_RED, false, false);
 }
 
+#ifdef CONF_SQL
 
 void CGameContext::ConRegister(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
     int ClientID = pResult->GetClientID();
 
-#ifdef CONF_SQL
 	char Username[512];
     char Password[512];
     str_copy(Username, pResult->GetString(0), sizeof(Username));
@@ -94,11 +94,7 @@ void CGameContext::ConRegister(IConsole::IResult *pResult, void *pUserData)
 	// mem_zero(aHash, sizeof(aHash));
 	// Crypt(Password, (const unsigned char*) "d9", 1, 14, aHash);
 
-    pSelf->Sql()->create_account(Username, Password, pResult->GetClientID());
-	return;
-#endif
-
-	pSelf->SendChatTarget(ClientID, "This server doesnt support accounts");
+    pSelf->Sql()->CreateAccount(Username, Password, pResult->GetClientID());
 }
 
 void CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
@@ -106,16 +102,34 @@ void CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
     int ClientID = pResult->GetClientID();
-#ifdef CONF_SQL
+
 	char Username[512];
     char Password[512];
     str_copy(Username, pResult->GetString(0), sizeof(Username));
     str_copy(Password, pResult->GetString(1), sizeof(Password));
 
-    pSelf->Sql()->login(Username, Password, pResult->GetClientID());
-
-	return;
-#endif
-
-	pSelf->SendChatTarget(ClientID, "This server doesnt support accounts");
+    pSelf->Sql()->Login(Username, Password, pResult->GetClientID());
 }
+
+void CGameContext::ConCreateClan(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+    int ClientID = pResult->GetClientID();
+
+	char Username[512];
+    str_copy(Username, pResult->GetString(0), sizeof(Username));
+
+    pSelf->Sql()->CreateClan(Username, pResult->GetClientID());
+}
+
+void CGameContext::ConCreateTables(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+    pSelf->Sql()->CreateTables();
+}
+
+
+
+#endif

@@ -1650,6 +1650,10 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("register", "ss", CFGFLAG_CHAT, ConRegister, this, "Register");
 	Console()->Register("login", "ss", CFGFLAG_CHAT, ConLogin, this, "Login");
 
+	Console()->Register("create_clan", "s", CFGFLAG_CHAT, ConCreateClan, this, "Create Clan");
+
+	Console()->Register("create_tables", "", CFGFLAG_SERVER, ConCreateTables, this, "Create Table");
+
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 	Console()->Chain("sv_rollback", ConchainRollback, this);
 }

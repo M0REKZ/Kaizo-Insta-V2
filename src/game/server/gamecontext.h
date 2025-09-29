@@ -77,6 +77,9 @@ class CGameContext : public IGameServer
 	static void ConLogin(IConsole::IResult *pResult, void *pUserData);
 	static void ConRegister(IConsole::IResult *pResult, void *pUserData);
 
+	static void ConCreateClan(IConsole::IResult *pResult, void *pUserData);
+	static void ConCreateTables(IConsole::IResult *pResult, void *pUserData);
+
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	static void ConRollback(IConsole::IResult *pResult, void *pUserData);

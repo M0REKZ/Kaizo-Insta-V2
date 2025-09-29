@@ -29,16 +29,17 @@ public:
 	const char* ip;
 	int port;
 
-	bool connect();
-	void disconnect();
+	bool Connect();
+	void Disconnect();
 	
-	void create_tables();
-	void create_account(const char* name, const char* pass, int client_id);
-	void delete_account(const char* name);
-	void delete_account(int client_id);
-	void change_password(int client_id, const char* new_pass);
+	void CreateTables();
+	void CreateAccount(const char* name, const char* pass, int client_id);
+	void ChangePassword(int client_id, const char* new_pass);
 
-	void login(const char* name, const char* pass, int client_id);
+	void CreateClan(const char* name, int m_ClientID);
+
+	void Login(const char* name, const char* pass, int client_id);
+	bool UpdateUser(int UserID, int Level, int Exp, int Money, char* UsernameBuf, int BufSize);
 	void update(int client_id);
 	void update_all();
 };
@@ -48,7 +49,6 @@ struct CSqlData
 	CSQL *m_SqlData;
 	char name[32];
 	char pass[32];
-	const char*  m_aLanguage[MAX_CLIENTS];
 	int m_ClientID;
 	int UserID[MAX_CLIENTS];
 
