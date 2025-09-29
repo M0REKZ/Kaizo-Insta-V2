@@ -41,6 +41,8 @@ void CGameContext::Construct(int Resetting)
 
 	if(Resetting==NO_RESET)
 		m_pVoteOptionHeap = new CHeap();
+
+	m_Sql = new CSQL(this);
 }
 
 CGameContext::CGameContext(int Resetting)
@@ -79,6 +81,8 @@ void CGameContext::Clear()
 	m_pVoteOptionLast = pVoteOptionLast;
 	m_NumVoteOptions = NumVoteOptions;
 	m_Tuning = Tuning;
+
+	delete m_Sql;
 }
 
 
@@ -1640,8 +1644,11 @@ void CGameContext::OnConsoleInit()
 
 	Console()->Register("info", "", CFGFLAG_CHAT, ConInfo, this, "info");
 	Console()->Register("rollback", "", CFGFLAG_CHAT, ConRollback, this, "rollback");
-	Console()->Register("spec", "", CFGFLAG_CHAT, ConSpec, this, "spec");
-	Console()->Register("pause", "", CFGFLAG_CHAT, ConSpec, this, "spec");
+	Console()->Register("spec", "", CFGFLAG_CHAT, ConSpec, this, "spectate");
+	Console()->Register("pause", "", CFGFLAG_CHAT, ConSpec, this, "spectate");
+
+	Console()->Register("register", "ss", CFGFLAG_CHAT, ConRegister, this, "Register");
+	Console()->Register("login", "ss", CFGFLAG_CHAT, ConLogin, this, "Login");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 	Console()->Chain("sv_rollback", ConchainRollback, this);

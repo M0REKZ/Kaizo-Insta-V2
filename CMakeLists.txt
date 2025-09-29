@@ -256,6 +256,37 @@ find_package(Python3 COMPONENTS Interpreter)
 find_package(Threads)
 find_package(Curl)
 
+# Find MySQL/MariaDB C++ Connector - SINGLE LOCATION
+if(PkgConfig_FOUND)
+    pkg_check_modules(MYSQLCPPCONN QUIET mysqlcppconn)
+endif()
+
+if(NOT MYSQLCPPCONN_FOUND)
+    find_path(MYSQLCPPCONN_INCLUDE_DIRS
+        NAMES mysql_connection.h cppconn/driver.h
+        PATHS 
+            /usr/include/mysql-cppconn 
+            /usr/local/include/mysql-cppconn
+            /usr/include/mysql-cppconn-8
+            /usr/local/include/mysql-cppconn-8
+            /opt/homebrew/include/mysql-cppconn-8
+            ${CROSSCOMPILING_NO_CMAKE_SYSTEM_PATH}
+    )
+    
+    find_library(MYSQLCPPCONN_LIBRARIES
+        NAMES mysqlcppconn mysqlcppconn8
+        PATHS 
+            /usr/lib 
+            /usr/local/lib
+            /opt/homebrew/lib
+            ${CROSSCOMPILING_NO_CMAKE_SYSTEM_PATH}
+    )
+    
+    if(MYSQLCPPCONN_INCLUDE_DIRS AND MYSQLCPPCONN_LIBRARIES)
+        set(MYSQLCPPCONN_FOUND TRUE)
+    endif()
+endif()
+
 message(STATUS "******** Teeworlds ********")
 message(STATUS "Target OS: ${TARGET_OS} ${TARGET_BITS}bit")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER}")
@@ -277,9 +308,18 @@ endfunction()
 show_dependency_status("Python" Python3_Interpreter)
 show_dependency_status("Zlib" ZLIB)
 show_dependency_status("Curl" CURL)
+show_dependency_status("MySQL C++ Connector" MYSQLCPPCONN)
 
 if(NOT Python3_Interpreter_FOUND)
   message(SEND_ERROR "You must install Python to compile Teeworlds")
+endif()
+
+if(NOT MYSQLCPPCONN_FOUND)
+  message(WARNING "MySQL C++ Connector not found. Database features will be disabled.")
+  message(STATUS "To install MySQL C++ Connector:")
+  message(STATUS "  Ubuntu/Debian: sudo apt install libmysqlcppconn-dev")
+  message(STATUS "  macOS: brew install mysql-connector-c++")
+  message(STATUS "  Or install MariaDB: sudo apt install libmariadb-dev")
 endif()
 
 if(TARGET_OS STREQUAL "windows")
@@ -330,6 +370,10 @@ add_library(json-parser EXCLUDE_FROM_ALL OBJECT ${DEP_JSONPARSER_SRC})
 
 list(APPEND TARGETS_DEP json-parser)
 set(DEP_JSONPARSER $<TARGET_OBJECTS:json-parser>)
+
+# Set up DEPS and LIBS variables
+set(DEPS ${DEP_MD5} ${ZLIB_DEP} ${DEP_JSONPARSER})
+set(LIBS ${CMAKE_THREAD_LIBS_INIT} ${ZLIB_LIBRARIES} ${PLATFORM_LIBS})
 
 ########################################################################
 # COPY DATA AND DLLS
@@ -418,6 +462,8 @@ set_glob(BASE GLOB_RECURSE src/base
   lock_scope.h
   system.cpp
   system.h
+  crypt.cpp
+  crypt.h
   tl/algorithm.h
   tl/allocator.h
   tl/array.h
@@ -527,11 +573,6 @@ set(GAME_GENERATED_SHARED
   src/game/generated/protocol.h
 )
 
-set(DEPS ${DEP_MD5} ${ZLIB_DEP} ${DEP_JSONPARSER})
-
-# Libraries
-set(LIBS ${CMAKE_THREAD_LIBS_INIT} ${ZLIB_LIBRARIES} ${PLATFORM_LIBS})
-
 # Targets
 add_library(engine-shared EXCLUDE_FROM_ALL OBJECT ${ENGINE_INTERFACE} ${ENGINE_SHARED} ${ENGINE_GENERATED_SHARED} ${BASE})
 add_library(game-shared EXCLUDE_FROM_ALL OBJECT ${GAME_SHARED} ${GAME_GENERATED_SHARED})
@@ -566,6 +607,8 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   eventhandler.h
   gamecontext.cpp
   gamecontext.h
+  accounts.cpp
+  accounts.h
   gamecontroller.cpp
   gamecontroller.h
   gamemodes/base_pvp.cpp
@@ -604,7 +647,12 @@ else()
 endif()
 
 # Libraries
-set(LIBS_SERVER ${LIBS} ${CURL_LIBRARIES})
+set(LIBS_SERVER ${LIBS} ${CURL_LIBRARIES} ssl crypto)
+
+# Add MySQL libraries if found
+if(MYSQLCPPCONN_FOUND)
+    list(APPEND LIBS_SERVER ${MYSQLCPPCONN_LIBRARIES})
+endif()
 
 # Target
 set(TARGET_SERVER ${SERVER_EXECUTABLE})
@@ -618,6 +666,12 @@ add_executable(${TARGET_SERVER}
 target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER})
 list(APPEND TARGETS_OWN ${TARGET_SERVER})
 list(APPEND TARGETS_LINK ${TARGET_SERVER})
+
+# Configure MySQL support after target creation
+if(MYSQLCPPCONN_FOUND)
+    target_include_directories(${TARGET_SERVER} PRIVATE ${MYSQLCPPCONN_INCLUDE_DIRS})
+    target_compile_definitions(${TARGET_SERVER} PRIVATE CONF_SQL)
+endif()
 
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   set(SERVER_LAUNCHER_SRC src/osx/server.mm)
@@ -710,6 +764,13 @@ foreach(target ${TARGETS_OWN})
   target_compile_definitions(${target} PRIVATE $<$<CONFIG:Debug>:CONF_DEBUG>)
   target_include_directories(${target} PRIVATE ${CURL_INCLUDE_DIRS})
   target_include_directories(${target} PRIVATE ${ZLIB_INCLUDE_DIRS})
+  
+  # Add libpq includes if available
+  if(MYSQLCPPCONN)
+    target_include_directories(${target} PRIVATE ${MYSQLCPPCONN_INCLUDE_DIRS})
+    target_compile_definitions(${target} PRIVATE CONF_SQL)
+  endif()
+  
   target_compile_features(${target} PUBLIC cxx_std_20)
 endforeach()
 

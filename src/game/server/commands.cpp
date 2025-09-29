@@ -3,6 +3,7 @@
 #include <engine/shared/config.h>
 #include <engine/map.h>
 #include <engine/console.h>
+#include <base/crypt.h>
 #include "gamecontext.h"
 #include <game/version.h>
 #include <game/collision.h>
@@ -18,14 +19,9 @@
 void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-
-    int ClientID = pResult->GetClientID();
-    if(ClientID < 0 || ClientID > MAX_CLIENTS)
-        return;
-
     char aBuf[128];
     str_format(aBuf, sizeof(aBuf), "Kaizo Insta V2 developed by +KZ and veqi");
-	pSelf->SendChatTarget(ClientID, aBuf);
+	pSelf->SendChatTarget(pResult->GetClientID(), aBuf);
 }
 
 void CGameContext::ConRollback(IConsole::IResult *pResult, void *pUser)
@@ -83,3 +79,43 @@ void CGameContext::ConSpec(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_apPlayers[ClientID]->SetTeam(TEAM_RED, false, false);
 }
 
+
+void CGameContext::ConRegister(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+    int ClientID = pResult->GetClientID();
+
+#ifdef CONF_SQL
+	char Username[512];
+    char Password[512];
+    str_copy(Username, pResult->GetString(0), sizeof(Username));
+    str_copy(Password, pResult->GetString(1), sizeof(Password));
+    // char aHash[64]; //Result
+	// mem_zero(aHash, sizeof(aHash));
+	// Crypt(Password, (const unsigned char*) "d9", 1, 14, aHash);
+
+    pSelf->Sql()->create_account(Username, Password, pResult->GetClientID());
+	return;
+#endif
+
+	pSelf->SendChatTarget(ClientID, "This server doesnt support accounts");
+}
+
+void CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+    int ClientID = pResult->GetClientID();
+#ifdef CONF_SQL
+	char Username[512];
+    char Password[512];
+    str_copy(Username, pResult->GetString(0), sizeof(Username));
+    str_copy(Password, pResult->GetString(1), sizeof(Password));
+
+    pSelf->Sql()->login(Username, Password, pResult->GetClientID());
+
+	return;
+#endif
+
+	pSelf->SendChatTarget(ClientID, "This server doesnt support accounts");
+}
