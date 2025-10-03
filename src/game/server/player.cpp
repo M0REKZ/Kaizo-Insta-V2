@@ -64,7 +64,7 @@ void CPlayer::Tick()
 
 	if(!GameServer()->m_World.m_Paused)
 	{
-		if(!m_pCharacter && m_Team == TEAM_SPECTATORS && m_SpectatorID == SPEC_FREEVIEW)
+		if(m_Team == TEAM_SPECTATORS && m_SpectatorID == SPEC_FREEVIEW)
 			m_ViewPos -= vec2(clamp(m_ViewPos.x-m_LatestActivity.m_TargetX, -500.0f, 500.0f), clamp(m_ViewPos.y-m_LatestActivity.m_TargetY, -400.0f, 400.0f));
 
 		if(!m_pCharacter && m_DieTick+Server()->TickSpeed()*3 <= Server()->Tick() && !m_DeadSpecMode)
@@ -74,7 +74,8 @@ void CPlayer::Tick()
 		{
 			if(m_pCharacter->IsAlive())
 			{
-				m_ViewPos = m_pCharacter->m_Pos;
+				if(m_Team != TEAM_SPECTATORS)
+					m_ViewPos = m_pCharacter->m_Pos;
 			}
 			else
 			{
@@ -155,10 +156,21 @@ void CPlayer::Snap(int SnappingClient)
 		pSpectatorInfo->m_X = m_ViewPos.x;
 		pSpectatorInfo->m_Y = m_ViewPos.y;
 	}
+
+	CNetObj_DDNetPlayer *pDDNetInfo = Server()->SnapNewItem<CNetObj_DDNetPlayer>(m_ClientID);
+	if(!pDDNetInfo)
+		return;
+
+	if(m_Team == TEAM_SPECTATORS && GetCharacter())
+	{
+		pDDNetInfo->m_Flags = EXPLAYERFLAG_SPEC;
+		pPlayerInfo->m_Team = TEAM_RED;
+	}
 }
 
 void CPlayer::OnDisconnect(const char *pReason)
 {
+	GameServer()->Sql()->UpdatePlayer(m_ClientID);
 	KillCharacter();
 
 	if(Server()->ClientIngame(m_ClientID))
@@ -265,7 +277,7 @@ void CPlayer::Respawn()
 		m_Spawning = true;
 }
 
-void CPlayer::SetTeam(int Team, bool DoChatMsg)
+void CPlayer::SetTeam(int Team, bool DoChatMsg, bool KillChr)
 {
 	// clamp the team
 	Team = GameServer()->m_pController->ClampTeam(Team);
@@ -279,7 +291,8 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
 	}
 
-	KillCharacter();
+	if(KillChr)
+		KillCharacter();
 
 	m_Team = Team;
 	m_LastActionTick = Server()->Tick();

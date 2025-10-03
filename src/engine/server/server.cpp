@@ -31,8 +31,7 @@
 
 #include <game/version.h>
 
-#include <mastersrv/mastersrv.h>
-
+#include "mastersrv.h"
 #include "register.h"
 #include "server.h"
 
@@ -883,8 +882,11 @@ void CServer::SendRconType(int ClientID, bool UsernameReq)
 void CServer::SendCapabilities(int ClientID)
 {
 	CMsgPacker Msg(NETMSG_CAPABILITIES, true);
-	Msg.AddInt(SERVERCAP_CURVERSION);																													  // version
-	Msg.AddInt(SERVERCAPFLAG_DDNET | SERVERCAPFLAG_ANYPLAYERFLAG | SERVERCAPFLAG_PINGEX | SERVERCAPFLAG_SYNCWEAPONINPUT); // flags
+	Msg.AddInt(SERVERCAP_CURVERSION);	// version
+	int Flags = SERVERCAPFLAG_DDNET | SERVERCAPFLAG_ANYPLAYERFLAG | SERVERCAPFLAG_PINGEX | SERVERCAPFLAG_SYNCWEAPONINPUT;
+	if(g_Config.m_SvMaxClientsPerIP > 1)
+		Flags |= SERVERCAPFLAG_ALLOWDUMMY;
+	Msg.AddInt(Flags);	// flags
 	SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
 }
 
@@ -2291,9 +2293,8 @@ void CServer::SnapFreeID(int ID)
 
 void *CServer::SnapNewItem(int Type, int ID, int Size)
 {
-	dbg_assert(Type >= 0 && Type <= 0xffff, "incorrect type");
-	dbg_assert(ID >= 0 && ID <= 0xffff, "incorrect id");
-	return ID < 0 ? 0 : m_SnapshotBuilder.NewItem(Type, ID, Size);
+	dbg_assert(ID >= -1 && ID <= 0xffff, "incorrect id");
+	return ID < 0 ? nullptr : m_SnapshotBuilder.NewItem(Type, ID, Size);
 }
 
 void CServer::SnapSetStaticsize(int ItemType, int Size)

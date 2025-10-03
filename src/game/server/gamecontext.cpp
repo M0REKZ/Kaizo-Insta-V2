@@ -15,6 +15,7 @@
 #include "gamemodes/mod.h"
 #include "gamemodes/lms.h"
 #include "gamemodes/lts.h"
+#include "gamemodes/block.h"
 
 enum
 {
@@ -40,6 +41,8 @@ void CGameContext::Construct(int Resetting)
 
 	if(Resetting==NO_RESET)
 		m_pVoteOptionHeap = new CHeap();
+
+	m_Sql = new CSQL(this);
 }
 
 CGameContext::CGameContext(int Resetting)
@@ -78,6 +81,8 @@ void CGameContext::Clear()
 	m_pVoteOptionLast = pVoteOptionLast;
 	m_NumVoteOptions = NumVoteOptions;
 	m_Tuning = Tuning;
+
+	delete m_Sql;
 }
 
 
@@ -272,8 +277,48 @@ void CGameContext::SendEmoticon(int ClientID, int Emoticon)
 	Msg.m_ClientId = ClientID;
 	Msg.m_Emoticon = Emoticon;
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
-}
 
+	CPlayer *pPlayer = m_apPlayers[ClientID];
+	CCharacter *pChr = pPlayer->GetCharacter();
+
+	// player needs a character to send emotes
+	if(!pChr)
+		return;
+
+	int EmoteType = EMOTE_NORMAL;
+	switch(Emoticon)
+	{
+	case EMOTICON_EXCLAMATION:
+	case EMOTICON_GHOST:
+	case EMOTICON_QUESTION:
+	case EMOTICON_WTF:
+		EmoteType = EMOTE_SURPRISE;
+		break;
+	case EMOTICON_DOTDOT:
+	case EMOTICON_DROP:
+	case EMOTICON_ZZZ:
+		EmoteType = EMOTE_BLINK;
+		break;
+	case EMOTICON_EYES:
+	case EMOTICON_HEARTS:
+	case EMOTICON_MUSIC:
+		EmoteType = EMOTE_HAPPY;
+		break;
+	case EMOTICON_OOP:
+	case EMOTICON_SORRY:
+	case EMOTICON_SUSHI:
+		EmoteType = EMOTE_PAIN;
+		break;
+	case EMOTICON_DEVILTEE:
+	case EMOTICON_SPLATTEE:
+	case EMOTICON_ZOMG:
+		EmoteType = EMOTE_ANGRY;
+		break;
+	default:
+		break;
+	}
+	pChr->SetEmote(EmoteType, Server()->Tick() + 2 * Server()->TickSpeed());
+}
 void CGameContext::SendWeaponPickup(int ClientID, int Weapon)
 {
 	CNetMsg_Sv_WeaponPickup Msg;
@@ -550,6 +595,26 @@ void CGameContext::OnClientEnter(int ClientID)
 
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), m_apPlayers[ClientID]->GetTeam());
 	Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+
+	{
+		CNetMsg_Sv_CommandInfoGroupStart Msg;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
+	}
+	for(const IConsole::CCommandInfo *pCmd = Console()->FirstCommandInfo(IConsole::ACCESS_LEVEL_ADMIN, CFGFLAG_CHAT);
+		pCmd; pCmd = pCmd->NextCommandInfo(IConsole::ACCESS_LEVEL_ADMIN, CFGFLAG_CHAT))
+	{
+		const char *pName = pCmd->m_pName;
+
+		CNetMsg_Sv_CommandInfo Msg;
+		Msg.m_pName = pName;
+		Msg.m_pArgsFormat = pCmd->m_pParams;
+		Msg.m_pHelpText = pCmd->m_pHelp;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
+	}
+	{
+		CNetMsg_Sv_CommandInfoGroupEnd Msg;
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, ClientID);
+	}
 
 	m_VoteUpdate = true;
 	Server()->ExpireServerInfo();
@@ -1530,47 +1595,6 @@ void CGameContext::ConsoleOutputCallback_Chat(const char *pLine, void *pUser)
 	ReentryGuard-=1;
 }
 
-void CGameContext::ConRollback(IConsole::IResult *pResult, void *pUser)
-{
-	CGameContext *pSelf = (CGameContext *)pUser;
-	int ClientId = pSelf->m_ChatResponseTargetID;
-
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
-		return;
-
-	if(!pSelf->m_pController)
-		return;
-
-	if(!g_Config.m_SvRollback)
-	{
-		pSelf->SendChatTarget(ClientId, "Rollback is not allowed on this server.");
-		return;
-	}
-
-	if(!pSelf->m_apPlayers[ClientId])
-		return;
-
-	if(!pSelf->m_apPlayers[ClientId]->m_RollbackEnabled)
-	{
-		pSelf->m_apPlayers[ClientId]->m_RollbackEnabled = true;
-		pSelf->SendChatTarget(ClientId, "Rollback enabled.");
-
-		if(pSelf->Server()->GetClientVersion(ClientId) >= VERSION_DDNET_ANTIPING_PROJECTILE)
-		{
-			pSelf->SendChatTarget(ClientId, "DDNet Client detected, for correct rollback experience please set the following Antiping settings:");
-			pSelf->SendChatTarget(ClientId, "* Antiping: ON");
-			pSelf->SendChatTarget(ClientId, "* Antiping: predict other players: OFF");
-			pSelf->SendChatTarget(ClientId, "* Antiping: predict weapons: ON");
-			pSelf->SendChatTarget(ClientId, "* Antiping: predict grenade paths: ON");
-		}
-	}
-	else
-	{
-		pSelf->m_apPlayers[ClientId]->m_RollbackEnabled = false;
-		pSelf->SendChatTarget(ClientId, "Rollback disabled.");
-	}
-}
-
 void CGameContext::ConchainRollback(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1619,7 +1643,17 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("vote", "r", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 
 	Console()->Register("info", "", CFGFLAG_CHAT, ConInfo, this, "info");
-	Console()->Register("rollback", "", CFGFLAG_CHAT, ConRollback, this, "info");
+	Console()->Register("rollback", "", CFGFLAG_CHAT, ConRollback, this, "rollback");
+	Console()->Register("spec", "", CFGFLAG_CHAT, ConSpec, this, "spectate");
+	Console()->Register("pause", "", CFGFLAG_CHAT, ConSpec, this, "spectate");
+
+	Console()->Register("register", "ss", CFGFLAG_CHAT, ConRegister, this, "Register");
+	Console()->Register("login", "ss", CFGFLAG_CHAT, ConLogin, this, "Login");
+	Console()->Register("logout", "", CFGFLAG_CHAT, ConLogout, this, "Logout");
+
+	Console()->Register("create_clan", "s", CFGFLAG_CHAT, ConCreateClan, this, "Create Clan");
+
+	Console()->Register("create_tables", "", CFGFLAG_SERVER, ConCreateTables, this, "Create Table");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 	Console()->Chain("sv_rollback", ConchainRollback, this);
@@ -1656,6 +1690,8 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		m_pController = new CGameControllerLMS(this);
 	else if(str_comp_nocase(g_Config.m_SvGametype, "lts") == 0)
 		m_pController = new CGameControllerLTS(this);
+	else if(str_comp_nocase(g_Config.m_SvGametype, "block") == 0)
+		m_pController = new CGameControllerBLOCK(this);
 	else
 		m_pController = new CGameControllerDM(this);
 

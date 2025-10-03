@@ -200,6 +200,9 @@ public:
 
 	int m_Direction;
 	int m_Angle;
+
+	bool m_Solo;
+
 	CNetObj_PlayerInput m_Input;
 
 	int m_TriggeredEvents;

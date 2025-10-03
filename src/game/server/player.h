@@ -20,7 +20,7 @@ public:
 
 	void TryRespawn();
 	void Respawn();
-	void SetTeam(int Team, bool DoChatMsg=true);
+	void SetTeam(int Team, bool DoChatMsg=true, bool KillChr=true);
 	int GetTeam() const { return m_Team; };
 	int GetCID() const { return m_ClientID; };
 
@@ -38,6 +38,21 @@ public:
 
 	bool DeadCanFollow(CPlayer *pPlayer) const;
 	void UpdateDeadSpecMode();
+
+	//---------------------------------------------------------
+	// account stuff
+	struct
+	{
+		// Main
+		int m_UserID;
+		char m_Username[32];
+		char m_Password[32];
+		unsigned int m_Level;
+		unsigned long long int m_ExpPoints;
+		unsigned long long int m_Money;
+
+
+	} m_AccData;
 
 	//---------------------------------------------------------
 	// this is used for snapping so we know how we can clip the view for the player

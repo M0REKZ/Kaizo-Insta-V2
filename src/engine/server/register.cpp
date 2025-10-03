@@ -12,7 +12,7 @@
 
 #include <memory>
 
-#include <mastersrv/mastersrv.h>
+#include "mastersrv.h"
 
 class CRegister : public IRegister
 {

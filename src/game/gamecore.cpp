@@ -47,13 +47,13 @@ float CTuningParams::GetWeaponFireDelay(int Weapon) const
 {
 	switch(Weapon)
 	{
-	case WEAPON_HAMMER: return (float)m_HammerHitFireDelay / 1000.0f;
-	case WEAPON_GUN: return (float)m_GunFireDelay / 1000.0f;
-	case WEAPON_SHOTGUN: return (float)m_ShotgunFireDelay / 1000.0f;
-	case WEAPON_GRENADE: return (float)m_GrenadeFireDelay / 1000.0f;
-	case WEAPON_LASER: return (float)m_LaserFireDelay / 1000.0f;
-	case WEAPON_NINJA: return (float)m_NinjaFireDelay / 1000.0f;
-	default: dbg_assert(false, "invalid weapon"); return 0.0f; // this value should not be reached
+		case WEAPON_HAMMER: return (float)m_HammerHitFireDelay / 1000.0f;
+		case WEAPON_GUN: return (float)m_GunFireDelay / 1000.0f;
+		case WEAPON_SHOTGUN: return (float)m_ShotgunFireDelay / 1000.0f;
+		case WEAPON_GRENADE: return (float)m_GrenadeFireDelay / 1000.0f;
+		case WEAPON_LASER: return (float)m_LaserFireDelay / 1000.0f;
+		case WEAPON_NINJA: return (float)m_NinjaFireDelay / 1000.0f;
+		default: dbg_assert(false, "invalid weapon"); return 0.0f; // this value should not be reached
 	}
 }
 
@@ -85,6 +85,7 @@ void CCharacterCore::Reset()
 	m_HookState = HOOK_IDLE;
 	m_HookedPlayer = -1;
 	m_Jumped = 0;
+	m_Solo = false;
 	m_TriggeredEvents = 0;
 }
 
@@ -221,13 +222,13 @@ void CCharacterCore::Tick(bool UseInput)
 		}
 
 		// Check against other players first
-		if(m_pWorld && m_pWorld->m_Tuning.m_PlayerHooking)
+		if(m_pWorld && m_pWorld->m_Tuning.m_PlayerHooking && !m_Solo)
 		{
 			float Distance = 0.0f;
 			for(int i = 0; i < MAX_CLIENTS; i++)
 			{
 				CCharacterCore *pCharCore = m_pWorld->m_apCharacters[i];
-				if(!pCharCore || pCharCore == this)
+				if(!pCharCore || pCharCore == this || pCharCore->m_Solo)
 					continue;
 
 				vec2 ClosestPoint = closest_point_on_line(m_HookPos, NewPos, pCharCore->m_Pos);
@@ -316,7 +317,7 @@ void CCharacterCore::Tick(bool UseInput)
 		}
 	}
 
-	if(m_pWorld)
+	if(m_pWorld && !m_Solo)
 	{
 		for(int i = 0; i < MAX_CLIENTS; i++)
 		{
@@ -325,7 +326,7 @@ void CCharacterCore::Tick(bool UseInput)
 				continue;
 
 			//player *p = (player*)ent;
-			if(pCharCore == this) // || !(p->flags&FLAG_ALIVE)
+			if(pCharCore == this || pCharCore->m_Solo) // || !(p->flags&FLAG_ALIVE)
 				continue; // make sure that we don't nudge our self
 
 			// handle player <-> player collision
@@ -381,7 +382,7 @@ void CCharacterCore::Move()
 
 	m_Vel.x = m_Vel.x*(1.0f/RampValue);
 
-	if(m_pWorld && m_pWorld->m_Tuning.m_PlayerCollision)
+	if(m_pWorld && m_pWorld->m_Tuning.m_PlayerCollision && !m_Solo)
 	{
 		// check player collision
 		float Distance = distance(m_Pos, NewPos);
@@ -394,7 +395,7 @@ void CCharacterCore::Move()
 			for(int p = 0; p < MAX_CLIENTS; p++)
 			{
 				CCharacterCore *pCharCore = m_pWorld->m_apCharacters[p];
-				if(!pCharCore || pCharCore == this)
+				if(!pCharCore || pCharCore == this || pCharCore->m_Solo)
 					continue;
 				float D = distance(Pos, pCharCore->m_Pos);
 				if(D < 28.0f && D > 0.0f)

@@ -284,24 +284,26 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID)
 
 		while(*pEnd)
 		{
-			if(*pEnd == '"')
-				InString ^= 1;
-			else if(*pEnd == '\\') // escape sequences
+			if(OutputLevel != OUTPUT_LEVEL_CHAT)
 			{
-				if(pEnd[1] == '"')
-					pEnd++;
-			}
-			else if(!InString)
-			{
-				if(*pEnd == ';') // command separator
+				if(*pEnd == '"')
+					InString ^= 1;
+				else if(*pEnd == '\\') // escape sequences
 				{
-					pNextPart = pEnd+1;
-					break;
+					if(pEnd[1] == '"')
+						pEnd++;
 				}
-				else if(*pEnd == '#') // comment, no need to do anything more
-					break;
+				else if(!InString)
+				{
+					if(*pEnd == ';') // command separator
+					{
+						pNextPart = pEnd+1;
+						break;
+					}
+					else if(*pEnd == '#') // comment, no need to do anything more
+						break;
+				}
 			}
-
 			pEnd++;
 		}
 

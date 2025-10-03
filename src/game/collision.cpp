@@ -76,11 +76,6 @@ int CCollision::GetTileF(int x, int y)
 	return m_pFront[Ny*m_Width+Nx].m_Index > 128 ? 0 : m_pFront[Ny*m_Width+Nx].m_Index;
 }
 
-bool CCollision::IsTileSolid(int x, int y)
-{
-	int Tile = GetTile(x, y);
-	return Tile == TILE_SOLID || Tile == TILE_NOHOOK;
-}
 
 // TODO: rewrite this smarter!
 int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, int WhoChecks)
@@ -99,11 +94,10 @@ int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *p
 
 		int hit = GetCollisionAt(ix, iy);
 		int fhit = GetCollisionAtFront(ix, iy);
-		if(CheckPoint(ix, iy))
-		{
-			if(WhoChecks == WHOCHECKS_HOOK /* 1=Hook */ && fhit == TILE_THROUGH)
-				hit = 0;
-		}
+		
+		if((WhoChecks == WHOCHECKS_HOOK && fhit == TILE_THROUGH) || !IsSolid(hit))
+			hit = 0;
+
 		if(hit)
 		{
 			if(pOutCollision)

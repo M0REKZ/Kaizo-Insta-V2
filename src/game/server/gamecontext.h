@@ -15,6 +15,7 @@
 #include "gamecontroller.h"
 #include "gameworld.h"
 #include "player.h"
+#include "accounts.h"
 
 #include <game/server/rollback.h> // ddnet-insta rollback
 
@@ -48,6 +49,7 @@ class CGameContext : public IGameServer
 	CCollision m_Collision;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
+	CSQL *m_Sql;
 
 	static void ConsoleOutputCallback_Chat(const char *pLine, void *pUser);
 
@@ -70,6 +72,15 @@ class CGameContext : public IGameServer
 	static void ConClearVotes(IConsole::IResult *pResult, void *pUserData);
 	static void ConVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConInfo(IConsole::IResult *pResult, void *pUserData);
+	static void ConSpec(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConLogin(IConsole::IResult *pResult, void *pUserData);
+	static void ConRegister(IConsole::IResult *pResult, void *pUserData);
+	static void ConLogout(IConsole::IResult *pResult, void *pUserData);
+
+	static void ConCreateClan(IConsole::IResult *pResult, void *pUserData);
+	static void ConCreateTables(IConsole::IResult *pResult, void *pUserData);
+
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	static void ConRollback(IConsole::IResult *pResult, void *pUserData);
@@ -88,6 +99,7 @@ public:
 	class IConsole *Console() { return m_pConsole; }
 	CCollision *Collision() { return &m_Collision; }
 	CTuningParams *Tuning() { return &m_Tuning; }
+	CSQL *Sql() const { return m_Sql; };
 
 	CGameContext();
 	~CGameContext();
