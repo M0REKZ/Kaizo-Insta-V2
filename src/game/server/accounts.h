@@ -39,9 +39,12 @@ public:
 	void CreateClan(const char* name, int m_ClientID);
 
 	void Login(const char* name, const char* pass, int client_id);
+	void Logout(int m_ClientID);
+	bool IsLoggedIn(int ClientID);
+	
 	bool UpdateUser(int UserID, int Level, int Exp, int Money, char* UsernameBuf, int BufSize);
-	void update(int client_id);
-	void update_all();
+	void UpdatePlayer(int client_id);
+	void UpdatePlayers();
 };
 
 struct CSqlData

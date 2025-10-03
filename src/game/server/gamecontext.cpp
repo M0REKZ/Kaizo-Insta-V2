@@ -1649,6 +1649,7 @@ void CGameContext::OnConsoleInit()
 
 	Console()->Register("register", "ss", CFGFLAG_CHAT, ConRegister, this, "Register");
 	Console()->Register("login", "ss", CFGFLAG_CHAT, ConLogin, this, "Login");
+	Console()->Register("logout", "", CFGFLAG_CHAT, ConLogout, this, "Logout");
 
 	Console()->Register("create_clan", "s", CFGFLAG_CHAT, ConCreateClan, this, "Create Clan");
 

@@ -170,6 +170,7 @@ void CPlayer::Snap(int SnappingClient)
 
 void CPlayer::OnDisconnect(const char *pReason)
 {
+	GameServer()->Sql()->UpdatePlayer(m_ClientID);
 	KillCharacter();
 
 	if(Server()->ClientIngame(m_ClientID))

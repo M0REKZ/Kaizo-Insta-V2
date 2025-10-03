@@ -79,8 +79,6 @@ void CGameContext::ConSpec(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_apPlayers[ClientID]->SetTeam(TEAM_RED, false, false);
 }
 
-#ifdef CONF_SQL
-
 void CGameContext::ConRegister(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -111,6 +109,14 @@ void CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
     pSelf->Sql()->Login(Username, Password, pResult->GetClientID());
 }
 
+void CGameContext::ConLogout(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+    pSelf->Sql()->Logout(pResult->GetClientID());
+}
+
+
 void CGameContext::ConCreateClan(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -129,7 +135,3 @@ void CGameContext::ConCreateTables(IConsole::IResult *pResult, void *pUserData)
 
     pSelf->Sql()->CreateTables();
 }
-
-
-
-#endif
