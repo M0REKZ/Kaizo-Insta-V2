@@ -54,22 +54,9 @@ function ContentCompile(action, output)
     return output
 end
 
--- Git revision generation
-function GitRevision(output)
-    output = Path(output)
-    AddJob(
-        output,
-        "git_revision > " .. output,
-        Script("scripts/git_revision.py") .. " > " .. output
-    )
-    AddDependency(output, Path("scripts/git_revision.py"))
-    return output
-end
-
 -- Generate protocol and content files
 network_source = ContentCompile("network_source", "src/game/generated/protocol.cpp")
 network_header = ContentCompile("network_header", "src/game/generated/protocol.h")
-git_revision = GitRevision("src/game/generated/git_revision.cpp")
 
 AddDependency(network_source, network_header)
 
@@ -154,8 +141,7 @@ game_shared = Compile(
     game_shared_settings,
     Collect("src/game/*.cpp"),
     network_source,
-    nethash,
-    git_revision
+    nethash
 )
 
 -- Compile engine server
