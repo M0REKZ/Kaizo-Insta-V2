@@ -1595,25 +1595,6 @@ void CGameContext::ConsoleOutputCallback_Chat(const char *pLine, void *pUser)
 	ReentryGuard-=1;
 }
 
-void CGameContext::ConchainRollback(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pfnCallback(pResult, pCallbackUserData);
-
-	//Dont keep rollback enabled if server does not allow it
-
-	if(!g_Config.m_SvRollback)
-	{
-		for(CPlayer *pPlayer : pSelf->m_apPlayers)
-		{
-			if(!pPlayer)
-				continue;
-
-			pPlayer->m_RollbackEnabled = false;
-		}
-	}
-}
-
 void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
@@ -1643,7 +1624,6 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("vote", "r", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 
 	Console()->Register("info", "", CFGFLAG_CHAT, ConInfo, this, "info");
-	Console()->Register("rollback", "", CFGFLAG_CHAT, ConRollback, this, "rollback");
 	Console()->Register("spec", "", CFGFLAG_CHAT, ConSpec, this, "spectate");
 	Console()->Register("pause", "", CFGFLAG_CHAT, ConSpec, this, "spectate");
 
@@ -1656,7 +1636,6 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("create_tables", "", CFGFLAG_SERVER, ConCreateTables, this, "Create Table");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
-	Console()->Chain("sv_rollback", ConchainRollback, this);
 }
 
 void CGameContext::OnInit(/*class IKernel *pKernel*/)
@@ -1728,8 +1707,6 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		}
 	}
 #endif
-
-	m_Rollback.Init(this);
 }
 
 void CGameContext::OnShutdown()
@@ -1781,16 +1758,6 @@ bool CGameContext::IsClientPlayer(int ClientID)
 const char *CGameContext::GameType() { return m_pController && m_pController->m_pGameType ? m_pController->m_pGameType : ""; }
 const char *CGameContext::Version() { return GAME_VERSION; }
 const char *CGameContext::NetVersion() { return GAME_NETVERSION; }
+const char *CGameContext::BuildDate() { return MOD_BUILDDATE; }
 
 IGameServer *CreateGameServer() { return new CGameContext; }
-
-void CGameContext::SetPlayerLastAckedSnapshot(int ClientId, int Tick)
-{
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
-		return;
-
-	if(!m_apPlayers[ClientId])
-		return;
-
-	m_apPlayers[ClientId]->m_LastAckedSnapshot = Tick;
-}

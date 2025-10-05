@@ -12,13 +12,13 @@ CGameControllerLMS::CGameControllerLMS(CGameContext *pGameServer) : CGameControl
 	switch (m_InstagibWeapon)
 	{
 	case WEAPON_GRENADE:
-		m_pGameType = "gLMS!";
+		m_pGameType = "gLMS.";
 		break;
 	case WEAPON_LASER:
-		m_pGameType = "iLMS!";
+		m_pGameType = "iLMS.";
 		break;
 	default:
-		m_pGameType = "LMS!";
+		m_pGameType = "LMS.";
 		break;
 	}
 	m_GameFlags = GAMEFLAG_SURVIVAL;

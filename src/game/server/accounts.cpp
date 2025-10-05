@@ -17,12 +17,12 @@ CSQL::CSQL(class CGameContext *pGameServer)
 	m_pGameServer = pGameServer;
 
 	// set database info
-	database = g_Config.m_SvSqlDatabase;
-	prefix = g_Config.m_SvSqlPrefix;
-	user = g_Config.m_SvSqlUser;
-	pass = g_Config.m_SvSqlPw;
-	ip = g_Config.m_SvSqlIp;
-	port = g_Config.m_SvSqlPort;
+    str_copy(database, g_Config.m_SvSqlDatabase, sizeof(database));
+    str_copy(prefix, g_Config.m_SvSqlPrefix, sizeof(prefix));
+    str_copy(user, g_Config.m_SvSqlUser, sizeof(user));
+    str_copy(pass, g_Config.m_SvSqlPw, sizeof(pass));
+    str_copy(ip, g_Config.m_SvSqlIp, sizeof(ip));
+    port = g_Config.m_SvSqlPort;
 }
 
 bool CSQL::Connect()

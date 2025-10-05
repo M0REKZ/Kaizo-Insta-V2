@@ -17,8 +17,6 @@
 #include "player.h"
 #include "accounts.h"
 
-#include <game/server/rollback.h> // ddnet-insta rollback
-
 
 /*
 	Tick
@@ -82,9 +80,6 @@ class CGameContext : public IGameServer
 	static void ConCreateTables(IConsole::IResult *pResult, void *pUserData);
 
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
-
-	static void ConRollback(IConsole::IResult *pResult, void *pUserData);
-	static void ConchainRollback(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
@@ -203,9 +198,8 @@ public:
 	virtual const char *GameType();
 	virtual const char *Version();
 	virtual const char *NetVersion();
+	virtual const char *BuildDate();
 
-	CRollback m_Rollback; //ddnet-insta rollback
-	virtual void SetPlayerLastAckedSnapshot(int ClientId, int Tick) override; //ddnet-insta rollback
 };
 
 inline int CmaskAll() { return -1; }

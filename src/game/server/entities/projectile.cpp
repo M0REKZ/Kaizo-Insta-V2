@@ -2,7 +2,6 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
-#include <game/server/rollback.h>
 #include "projectile.h"
 
 CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, vec2 Dir, int Span,
@@ -21,24 +20,7 @@ CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, 
 	m_StartTick = Server()->Tick();
 	m_Explosive = Explosive;
 
-	m_FirstTick = true;
-	m_OrigStartTick = m_StartTick;
-	m_FirstSnap = true;
-
-	for(int &ParticleId : m_aParticleIds)
-	{
-		ParticleId = Server()->SnapNewID();
-	}
-
 	GameWorld()->InsertEntity(this);
-}
-
-CProjectile::~CProjectile()
-{
-	for(int ParticleId : m_aParticleIds)
-	{
-		Server()->SnapFreeID(ParticleId);
-	}
 }
 
 void CProjectile::Reset()
@@ -75,66 +57,13 @@ vec2 CProjectile::GetPos(float Time)
 
 void CProjectile::Tick()
 {
-	bool IsRollbackDamage = false; //ddnet-insta
-	int RollbackDamageTick = 0; //ddnet-insta
-
-	int Collide = 0;
-	CCharacter *pTargetChr = 0;
-	float Pt;
-	float Ct;
-	vec2 PrevPos;
-	vec2 CurPos;
-	vec2 ColPos;
+	float Pt = (Server()->Tick()-m_StartTick-1)/(float)Server()->TickSpeed();
+	float Ct = (Server()->Tick()-m_StartTick)/(float)Server()->TickSpeed();
+	vec2 PrevPos = GetPos(Pt);
+	vec2 CurPos = GetPos(Ct);
+	int Collide = GameServer()->Collision()->IntersectLine(PrevPos, CurPos, &CurPos, 0);
 	CCharacter *OwnerChar = GameServer()->GetPlayerChar(m_Owner);
-
-	if(m_FirstTick && m_Owner >= 0 && m_Owner < MAX_CLIENTS && GameServer()->m_apPlayers[m_Owner] && GameServer()->m_apPlayers[m_Owner]->m_RollbackEnabled && GameServer()->m_apPlayers[m_Owner]->GetCharacter())
-	{
-		m_StartTick = GameServer()->m_apPlayers[m_Owner]->m_LastAckedSnapshot + 1;
-
-		//Collide with wall and tee
-		int CollideTick;
-		for(CollideTick = m_StartTick + 1; CollideTick <= m_OrigStartTick; CollideTick++)
-		{
-			Pt = (CollideTick - m_StartTick - 1) / (float)Server()->TickSpeed();
-			Ct = (CollideTick - m_StartTick) / (float)Server()->TickSpeed();
-			PrevPos = GetPos(Pt);
-			CurPos = GetPos(Ct);
-			Collide = GameServer()->Collision()->IntersectLine(PrevPos, CurPos, &ColPos, nullptr); //wall
-
-			if(m_LifeSpan > -1)
-				m_LifeSpan--;
-
-			if(Collide)
-				break;
-
-			pTargetChr = GameServer()->m_Rollback.IntersectCharacterOnTick(PrevPos, ColPos, 6.0f, ColPos, OwnerChar, nullptr, nullptr, CollideTick); //tee
-
-			if(pTargetChr)
-			{
-				IsRollbackDamage = true;
-				RollbackDamageTick = CollideTick;
-				break;
-			}
-
-			if(Collide)
-				break;
-
-			if(m_LifeSpan < 0)
-				break;
-		}
-	}
-	else
-	{
-		Pt = (Server()->Tick() - m_StartTick - 1) / (float)Server()->TickSpeed();
-		Ct = (Server()->Tick() - m_StartTick) / (float)Server()->TickSpeed();
-		PrevPos = GetPos(Pt);
-		CurPos = GetPos(Ct);
-		if(!Collide)
-			Collide = GameServer()->Collision()->IntersectLine(PrevPos, CurPos, nullptr, nullptr);
-
-		if(!pTargetChr)
-			pTargetChr = GameServer()->m_World.IntersectCharacter(PrevPos, CurPos, 6.0f, CurPos, OwnerChar);
-	}
+	CCharacter *pTargetChr = GameServer()->m_World.IntersectCharacter(PrevPos, CurPos, 6.0f, CurPos, OwnerChar);
 
 	m_LifeSpan--;
 
@@ -151,7 +80,6 @@ void CProjectile::Tick()
 
 		GameServer()->m_World.DestroyEntity(this);
 	}
-	m_FirstTick = false;
 }
 
 void CProjectile::TickPaused()
@@ -171,27 +99,6 @@ void CProjectile::FillInfo(CNetObj_Projectile *pProj)
 
 void CProjectile::Snap(int SnappingClient)
 {
-	//Kaizo-Insta projectile rollback particles
-	if(m_FirstSnap && m_Owner >= 0 && m_Owner < MAX_CLIENTS && GameServer()->m_apPlayers[m_Owner] && GameServer()->m_apPlayers[m_Owner]->m_RollbackEnabled)
-	{
-		for(int i = 0; i < 3; i++)
-		{
-			{
-				CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_aParticleIds[i], sizeof(CNetObj_Projectile)));
-				if(!pProj)
-				{
-					continue;
-				}
-				pProj->m_X = GetPos((Server()->Tick() - (m_OrigStartTick - (i * 2 + 3))) / (float)Server()->TickSpeed()).x;
-				pProj->m_Y = GetPos((Server()->Tick() - (m_OrigStartTick - (i * 2 + 3))) / (float)Server()->TickSpeed()).y;
-				pProj->m_VelX = 0;
-				pProj->m_VelY = 0;
-				pProj->m_StartTick = Server()->Tick();
-				pProj->m_Type = WEAPON_HAMMER;
-			}
-		}
-	}
-
 	float Ct = (Server()->Tick()-m_StartTick)/(float)Server()->TickSpeed();
 
 	if(NetworkClipped(SnappingClient, GetPos(Ct)))
@@ -200,6 +107,4 @@ void CProjectile::Snap(int SnappingClient)
 	CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_ID, sizeof(CNetObj_Projectile)));
 	if(pProj)
 		FillInfo(pProj);
-	
-	m_FirstSnap = false;
 }

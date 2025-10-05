@@ -139,6 +139,7 @@ public:
 	virtual const char *GameType() = 0;
 	virtual const char *Version() = 0;
 	virtual const char *NetVersion() = 0;
+	virtual const char *BuildDate() = 0;
 
 	/**
 	 * Used to report custom player info to master servers.
@@ -147,8 +148,6 @@ public:
 	 * @param i The client id.
 	 */
 	virtual void OnUpdatePlayerServerInfo(CJsonStringWriter *pJSonWriter, int Id) = 0;
-	
-	virtual void SetPlayerLastAckedSnapshot(int ClientId, int Tick){}; //ddnet-insta rollback
 };
 
 extern IGameServer *CreateGameServer();

@@ -12,13 +12,13 @@ CGameControllerLTS::CGameControllerLTS(CGameContext *pGameServer) : CGameControl
 	switch (m_InstagibWeapon)
 	{
 	case WEAPON_GRENADE:
-		m_pGameType = "gLTS!";
+		m_pGameType = "gLTS.";
 		break;
 	case WEAPON_LASER:
-		m_pGameType = "iLTS!";
+		m_pGameType = "iLTS.";
 		break;
 	default:
-		m_pGameType = "LTS!";
+		m_pGameType = "LTS.";
 		break;
 	}
 	m_GameFlags = GAMEFLAG_TEAMS | GAMEFLAG_SURVIVAL;

@@ -4,12 +4,10 @@
 #define GAME_SERVER_ENTITIES_CHARACTER_H
 
 #include <game/server/entity.h>
-#include <game/generated/server_data.h>
 #include <game/generated/protocol.h>
 
 #include <game/gamecore.h>
 
-#include <game/server/rollback.h>
 class CCharacter : public CEntity
 {
 	MACRO_ALLOC_POOL_ID()
@@ -63,8 +61,6 @@ public:
 	bool IsSolo() { return m_Core.m_Solo; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 	class CCharacterCore &Core() { return m_Core; }
-
-	CRollbackPositionHistory m_Positions[ROLLBACK_POSITION_HISTORY];
 
 private:
 	// player controlling this character

@@ -14,55 +14,49 @@
 #include "gamemodes/mod.h"
 #include "gamemodes/lms.h"
 #include "gamemodes/lts.h"
-
+#include <game/version.h>
+#include <game/layers.h>
 
 void CGameContext::ConInfo(IConsole::IResult *pResult, void *pUserData)
 {
-	CGameContext *pSelf = (CGameContext *)pUserData;
+    CGameContext *pSelf = (CGameContext *)pUserData;
     char aBuf[128];
-    str_format(aBuf, sizeof(aBuf), "Kaizo Insta V2 developed by +KZ and veqi");
-	pSelf->SendChatTarget(pResult->GetClientID(), aBuf);
-}
+    
+    str_format(aBuf, sizeof(aBuf), "Server's Infrastructure dates to %s", pSelf->BuildDate());
+    pSelf->SendChatTarget(pResult->GetClientID(), aBuf);
+    pSelf->SendChatTarget(pResult->GetClientID(), "Developed by veqi, +KZ");
+    
+    // Get map info with safety checks
+    CMapItemInfo *pMapInfo = pSelf->m_Layers.GetMapInfo();
+    if(!pMapInfo)
+        return;
 
-void CGameContext::ConRollback(IConsole::IResult *pResult, void *pUser)
-{
-	CGameContext *pSelf = (CGameContext *)pUser;
-	int ClientId = pSelf->m_ChatResponseTargetID;
-
-	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
-		return;
-
-	if(!pSelf->m_pController)
-		return;
-
-	if(!g_Config.m_SvRollback)
-	{
-		pSelf->SendChatTarget(ClientId, "Rollback is not allowed on this server.");
-		return;
-	}
-
-	if(!pSelf->m_apPlayers[ClientId])
-		return;
-
-	if(!pSelf->m_apPlayers[ClientId]->m_RollbackEnabled)
-	{
-		pSelf->m_apPlayers[ClientId]->m_RollbackEnabled = true;
-		pSelf->SendChatTarget(ClientId, "Rollback enabled.");
-
-		if(pSelf->Server()->GetClientVersion(ClientId) >= VERSION_DDNET_ANTIPING_PROJECTILE)
-		{
-			pSelf->SendChatTarget(ClientId, "DDNet Client detected, for correct rollback experience please set the following Antiping settings:");
-			pSelf->SendChatTarget(ClientId, "* Antiping: ON");
-			pSelf->SendChatTarget(ClientId, "* Antiping: predict other players: OFF");
-			pSelf->SendChatTarget(ClientId, "* Antiping: predict weapons: ON");
-			pSelf->SendChatTarget(ClientId, "* Antiping: predict grenade paths: ON");
-		}
-	}
-	else
-	{
-		pSelf->m_apPlayers[ClientId]->m_RollbackEnabled = false;
-		pSelf->SendChatTarget(ClientId, "Rollback disabled.");
-	}
+    if(!pSelf->m_Layers.Map())
+        return;
+    
+    if(pMapInfo->m_Author >= 0)
+    {
+        int DataSize = 0;
+        void *pData = pSelf->m_Layers.Map()->GetData(pMapInfo->m_Author);
+        const char *pAuthor = (const char *)pData;
+        
+        if(pAuthor && pAuthor[0] != '\0')
+        {
+            str_format(aBuf, sizeof(aBuf), "Map Author: %s", pAuthor);
+            pSelf->SendChatTarget(pResult->GetClientID(), aBuf);
+        }
+    }
+    if(pMapInfo->m_License >= 0)
+    {
+        void *pData = pSelf->m_Layers.Map()->GetData(pMapInfo->m_License);
+        const char *pLicense = (const char *)pData;
+        
+        if(pLicense && pLicense[0] != '\0')
+        {
+            str_format(aBuf, sizeof(aBuf), "Map License: %s", pLicense);
+            pSelf->SendChatTarget(pResult->GetClientID(), aBuf);
+        }
+    }
 }
 
 void CGameContext::ConSpec(IConsole::IResult *pResult, void *pUserData)
@@ -99,8 +93,6 @@ void CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
-    int ClientID = pResult->GetClientID();
-
 	char Username[512];
     char Password[512];
     str_copy(Username, pResult->GetString(0), sizeof(Username));
@@ -120,8 +112,6 @@ void CGameContext::ConLogout(IConsole::IResult *pResult, void *pUserData)
 void CGameContext::ConCreateClan(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-
-    int ClientID = pResult->GetClientID();
 
 	char Username[512];
     str_copy(Username, pResult->GetString(0), sizeof(Username));

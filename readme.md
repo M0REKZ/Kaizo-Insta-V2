@@ -1,14 +1,10 @@
-# Kaizo-Insta-V2
+# JustStuff
 
-By +KZ and veqi
+By veqi and +KZ
 
-A ddnet-insta alternative based directly on vanilla teeworlds, but with ddnet features remade.
+A mod based directly on vanilla teeworlds, but with ddnet features remade. (Only DDNet Clients are supported)
 
-Intended to be a successor for original Kaizo-Insta, being independent of ddnet-insta and with less bloating.
-
-Only DDNet Clients are supported.
-
-Contributions are welcome :D
+Intended to be a successor for original Kaizo-Insta and LonerStuff,being independent of ddnet-insta and with less bloating.
 
 ## Gametypes:
 
@@ -17,10 +13,8 @@ Contributions are welcome :D
 - LMS
 - TDM
 - LTS
+- Instagib variations of those
 
 ## Features:
 
 - Laser and Grenade Instagib support
-
-
-FIXX MYSQL

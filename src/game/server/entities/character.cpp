@@ -123,7 +123,7 @@ void CCharacter::HandleNinja()
 	if(m_ActiveWeapon != WEAPON_NINJA)
 		return;
 
-	if ((Server()->Tick() - m_Ninja.m_ActivationTick) > (g_pData->m_Weapons.m_Ninja.m_Duration * Server()->TickSpeed() / 1000))
+	if ((Server()->Tick() - m_Ninja.m_ActivationTick) > (15000 * Server()->TickSpeed() / 1000))
 	{
 		// time's up, return
 		m_aWeapons[WEAPON_NINJA].m_Got = false;
@@ -147,7 +147,7 @@ void CCharacter::HandleNinja()
 	if (m_Ninja.m_CurrentMoveTime > 0)
 	{
 		// Set velocity
-		m_Core.m_Vel = m_Ninja.m_ActivationDir * g_pData->m_Weapons.m_Ninja.m_Velocity;
+		m_Core.m_Vel = m_Ninja.m_ActivationDir * 50;
 		vec2 OldPos = m_Pos;
 		GameServer()->Collision()->MoveBox(&m_Core.m_Pos, &m_Core.m_Vel, vec2(m_ProximityRadius, m_ProximityRadius), 0.f);
 
@@ -187,7 +187,7 @@ void CCharacter::HandleNinja()
 				if(m_NumObjectsHit < 10)
 					m_apHitObjects[m_NumObjectsHit++] = aEnts[i];
 
-				aEnts[i]->TakeDamage(vec2(0, -10.0f), g_pData->m_Weapons.m_Ninja.m_pBase->m_Damage, m_pPlayer->GetCID(), WEAPON_NINJA);
+				aEnts[i]->TakeDamage(vec2(0, -10.0f), 9, m_pPlayer->GetCID(), WEAPON_NINJA);
 			}
 		}
 
@@ -297,8 +297,8 @@ void CCharacter::FireWeapon()
 
 			CCharacter *apEnts[MAX_CLIENTS];
 			int Hits = 0;
-			int Num = GameServer()->m_Rollback.FindCharactersOnTick(ProjStartPos, m_ProximityRadius * 0.5f, (CEntity **)apEnts,
-														MAX_CLIENTS, m_pPlayer->m_RollbackEnabled ? m_pPlayer->m_LastAckedSnapshot : -1);
+			int Num = GameServer()->m_World.FindEntities(ProjStartPos, m_ProximityRadius*0.5f, (CEntity**)apEnts,
+														MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 
 			for (int i = 0; i < Num; ++i)
 			{
@@ -319,7 +319,7 @@ void CCharacter::FireWeapon()
 				else
 					Dir = vec2(0.f, -1.f);
 
-				pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
+				pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, 3, // Damage
 					m_pPlayer->GetCID(), m_ActiveWeapon);
 				Hits++;
 			}
@@ -390,7 +390,7 @@ void CCharacter::FireWeapon()
 			m_NumObjectsHit = 0;
 
 			m_Ninja.m_ActivationDir = Direction;
-			m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000;
+			m_Ninja.m_CurrentMoveTime = 200 * Server()->TickSpeed() / 1000;
 			m_Ninja.m_OldVelAmount = length(m_Core.m_Vel);
 
 			GameServer()->CreateSound(m_Pos, SOUND_NINJA_FIRE);
@@ -404,7 +404,7 @@ void CCharacter::FireWeapon()
 		m_aWeapons[m_ActiveWeapon].m_Ammo--;
 
 	if(!m_ReloadTimer)
-		m_ReloadTimer = GameServer()->Tuning()->GetWeaponFireDelay(m_ActiveWeapon) * Server()->TickSpeed(); //g_pData->m_Weapons.m_aId[m_ActiveWeapon].m_Firedelay * Server()->TickSpe ed() / 1000;
+		m_ReloadTimer = GameServer()->Tuning()->GetWeaponFireDelay(m_ActiveWeapon) * Server()->TickSpeed();
 }
 
 void CCharacter::HandleWeapons()
@@ -423,7 +423,10 @@ void CCharacter::HandleWeapons()
 	FireWeapon();
 
 	// ammo regen
-	int AmmoRegenTime = g_pData->m_Weapons.m_aId[m_ActiveWeapon].m_Ammoregentime;
+	int AmmoRegenTime = 0;
+	if(m_ActiveWeapon == WEAPON_GUN)
+		AmmoRegenTime = 500;
+
 	if(AmmoRegenTime)
 	{
 		// If equipped and not active, regen ammo?
@@ -450,10 +453,10 @@ void CCharacter::HandleWeapons()
 
 bool CCharacter::GiveWeapon(int Weapon, int Ammo, bool Got)
 {
-	if(m_aWeapons[Weapon].m_Ammo < g_pData->m_Weapons.m_aId[Weapon].m_Maxammo || m_aWeapons[Weapon].m_Got != Got)
+	if(m_aWeapons[Weapon].m_Ammo < 10 || m_aWeapons[Weapon].m_Got != Got)
 	{
 		m_aWeapons[Weapon].m_Got = Got;
-		m_aWeapons[Weapon].m_Ammo = min(g_pData->m_Weapons.m_aId[Weapon].m_Maxammo, Ammo);
+		m_aWeapons[Weapon].m_Ammo = min(10, Ammo);
 		HandleWeaponSwitch();
 		return true;
 	}
@@ -582,8 +585,6 @@ void CCharacter::TickDefered()
 	m_Core.Quantize();
 	bool StuckAfterQuant = GameServer()->Collision()->TestBox(m_Core.m_Pos, vec2(28.0f, 28.0f));
 	m_Pos = m_Core.m_Pos;
-	m_Positions[Server()->Tick() % ROLLBACK_POSITION_HISTORY].m_Position = m_Pos; //ddnet-insta rollback
-	m_Positions[Server()->Tick() % ROLLBACK_POSITION_HISTORY].m_Valid = true; //ddnet-insta rollback
 
 	if(!StuckBefore && (StuckAfterMove || StuckAfterQuant))
 	{

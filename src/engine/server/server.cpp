@@ -1168,7 +1168,6 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				IntendedTick = Tick()+1;
 
 			pInput->m_GameTick = IntendedTick;
-			pInput->m_AckedTick = LastAckedSnapshot; //ddnet-insta rollback
 
 			for(int i = 0; i < Size/4; i++)
 				pInput->m_aData[i] = Unpacker.GetInt();
@@ -1392,7 +1391,7 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 		(p).AddString(aBuf, 0); \
 	} while(0)
 
-	p.AddString(GameServer()->Version(), 32);
+	p.AddString(GameServer()->BuildDate(), 32);
 	if(Type != SERVERINFO_VANILLA)
 	{
 		p.AddString(g_Config.m_SvName, 256);
@@ -1673,7 +1672,7 @@ void CServer::UpdateRegisterServerInfo()
 	JsonWriter.EndObject();
 
 	JsonWriter.WriteAttribute("version");
-	JsonWriter.WriteStrValue(GameServer()->Version());
+	JsonWriter.WriteStrValue(GameServer()->BuildDate());
 
 	JsonWriter.WriteAttribute("client_score_kind");
 	JsonWriter.WriteStrValue("time"); // "points" or "time"
@@ -1992,7 +1991,6 @@ int CServer::Run()
 					{
 						if (Input.m_GameTick == Tick())
 						{
-							GameServer()->SetPlayerLastAckedSnapshot(c, Input.m_AckedTick); //ddnet-insta rollback
 							GameServer()->OnClientPredictedInput(c, Input.m_aData);
 							ClientHadInput = true;
 							break;

@@ -51,7 +51,7 @@ bool CGameControllerBasePvP::OnCharacterTakeDamage(CCharacter *pChar, vec2 Force
         {
             // check for death
 
-            if (pChar->GetPlayer()->GetCID() == From)
+            if (pChar->GetPlayer()->GetCID() == From || (GameServer()->m_pController->IsFriendlyFire(pChar->GetPlayer()->GetCID(), From) && !g_Config.m_SvTeamdamage))
                 break;
 
             if (Dmg < g_Config.m_SvInstagibMinDamage)

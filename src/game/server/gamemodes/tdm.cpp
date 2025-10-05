@@ -11,13 +11,13 @@ CGameControllerTDM::CGameControllerTDM(class CGameContext *pGameServer) : CGameC
 	switch (m_InstagibWeapon)
 	{
 	case WEAPON_GRENADE:
-		m_pGameType = "gTDM!";
+		m_pGameType = "gTDM.";
 		break;
 	case WEAPON_LASER:
-		m_pGameType = "iTDM!";
+		m_pGameType = "iTDM.";
 		break;
 	default:
-		m_pGameType = "TDM!";
+		m_pGameType = "TDM.";
 		break;
 	}
 	m_GameFlags = GAMEFLAG_TEAMS;

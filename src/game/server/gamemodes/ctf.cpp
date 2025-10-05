@@ -19,13 +19,13 @@ CGameControllerCTF::CGameControllerCTF(class CGameContext *pGameServer)
 	switch (m_InstagibWeapon)
 	{
 	case WEAPON_GRENADE:
-		m_pGameType = "gCTF!";
+		m_pGameType = "gCTF.";
 		break;
 	case WEAPON_LASER:
-		m_pGameType = "iCTF!";
+		m_pGameType = "iCTF.";
 		break;
 	default:
-		m_pGameType = "CTF!";
+		m_pGameType = "CTF.";
 		break;
 	}
 	

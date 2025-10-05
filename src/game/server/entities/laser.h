@@ -18,9 +18,6 @@ public:
 protected:
 	bool HitCharacter(vec2 From, vec2 To);
 	void DoBounce();
-
-	int m_FireAckedTick = -1; //rollback (ddnet-insta specific)
-
 private:
 	vec2 m_From;
 	vec2 m_Dir;

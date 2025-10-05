@@ -503,8 +503,6 @@ def main():
 						'content_types_header': gen_content_types_header,
 						'client_content_header': gen_client_content_header,
 						'client_content_source': gen_client_content_source,
-						'server_content_header': gen_server_content_header,
-						'server_content_source': gen_server_content_source,
 					}
 
 	parser.add_argument('file_to_generate', choices=FUNCTION_MAP.keys())

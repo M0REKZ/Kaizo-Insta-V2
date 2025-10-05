@@ -17,6 +17,7 @@ class CLayers
 	CMapItemLayerTilemap *m_pFrontLayer;
 	CMapItemLayerTilemap *m_pTeleLayer;
 	CMapItemLayerTilemap *m_pSpeedupLayer;
+	CMapItemInfo *m_pMapInfo;
 	class IMap *m_pMap;
 
 public:
@@ -28,8 +29,10 @@ public:
 	CMapItemLayerTilemap *GameLayer() const { return m_pGameLayer; };
 	CMapItemLayerTilemap *FrontLayer() const { return m_pFrontLayer; };
 	CMapItemLayerTilemap *TeleLayer() const { return m_pTeleLayer; }
-	CMapItemLayerTilemap *SpeedupLayer() const { return m_pSpeedupLayer; };	CMapItemGroup *GetGroup(int Index) const;
+	CMapItemLayerTilemap *SpeedupLayer() const { return m_pSpeedupLayer; };
+	CMapItemGroup *GetGroup(int Index) const;
 	CMapItemLayer *GetLayer(int Index) const;
+	CMapItemInfo *GetMapInfo() const;
 };
 
 #endif

@@ -22,12 +22,12 @@ public:
 	sql::ResultSet *results;
 
 	// copy of config vars
-	const char* database;
-	const char* prefix;
-	const char* user;
-	const char* pass;
-	const char* ip;
-	int port;
+    char database[64];
+    char prefix[64];
+    char user[64];
+    char pass[64];
+    char ip[64];
+    int port;
 
 	bool Connect();
 	void Disconnect();

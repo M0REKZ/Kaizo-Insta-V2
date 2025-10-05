@@ -10,13 +10,13 @@ CGameControllerDM::CGameControllerDM(class CGameContext *pGameServer)
 	switch (m_InstagibWeapon)
 	{
 	case WEAPON_GRENADE:
-		m_pGameType = "gDM!";
+		m_pGameType = "gDM.";
 		break;
 	case WEAPON_LASER:
-		m_pGameType = "iDM!";
+		m_pGameType = "iDM.";
 		break;
 	default:
-		m_pGameType = "DM!";
+		m_pGameType = "DM.";
 		break;
 	}
 }

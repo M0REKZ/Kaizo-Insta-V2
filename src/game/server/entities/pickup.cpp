@@ -18,9 +18,9 @@ CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType)
 
 void CPickup::Reset()
 {
-	if (g_pData->m_aPickups[m_Type].m_Spawndelay > 0)
-		m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * g_pData->m_aPickups[m_Type].m_Spawndelay;
-	else
+	// if (g_pData->m_aPickups[m_Type].m_Spawndelay > 0)
+	// 	m_SpawnTick = Server()->Tick() + Server()->TickSpeed() * g_pData->m_aPickups[m_Type].m_Spawndelay;
+	// else
 		m_SpawnTick = -1;
 }
 
@@ -52,7 +52,7 @@ void CPickup::Tick()
 				if(pChr->IncreaseHealth(1))
 				{
 					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH);
-					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+					RespawnTime = 15;
 				}
 				break;
 
@@ -60,7 +60,7 @@ void CPickup::Tick()
 				if(pChr->IncreaseArmor(1))
 				{
 					GameServer()->CreateSound(m_Pos, SOUND_PICKUP_ARMOR);
-					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+					RespawnTime = 15;
 				}
 				break;
 
@@ -69,7 +69,7 @@ void CPickup::Tick()
 				{
 					if(pChr->GiveWeapon(m_Subtype, 10))
 					{
-						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+						RespawnTime = 15;
 
 						if(m_Subtype == WEAPON_GRENADE)
 							GameServer()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE);
@@ -88,7 +88,7 @@ void CPickup::Tick()
 				{
 					// activate ninja on target player
 					pChr->GiveNinja();
-					RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+					RespawnTime = 15;
 
 					// loop through all players, setting their emotes
 					CCharacter *pC = static_cast<CCharacter *>(GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER));
