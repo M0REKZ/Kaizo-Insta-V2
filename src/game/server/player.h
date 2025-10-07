@@ -49,7 +49,6 @@ public:
 		char m_Password[32];
 		unsigned int m_Level;
 		unsigned long long int m_ExpPoints;
-		unsigned long long int m_Money;
 
 
 	} m_AccData;

@@ -6,8 +6,6 @@
 #include <game/server/player.h>
 
 static LOCK sql_lock = 0;
-class CGameContext *m_pGameServer;
-CGameContext *GameServer() { return m_pGameServer; }
 
 CSQL::CSQL(class CGameContext *pGameServer)
 {
@@ -15,37 +13,36 @@ CSQL::CSQL(class CGameContext *pGameServer)
 		sql_lock = lock_create();
 
 	m_pGameServer = pGameServer;
-
-	// set database info
-    str_copy(database, g_Config.m_SvSqlDatabase, sizeof(database));
-    str_copy(prefix, g_Config.m_SvSqlPrefix, sizeof(prefix));
-    str_copy(user, g_Config.m_SvSqlUser, sizeof(user));
-    str_copy(pass, g_Config.m_SvSqlPw, sizeof(pass));
-    str_copy(ip, g_Config.m_SvSqlIp, sizeof(ip));
-    port = g_Config.m_SvSqlPort;
 }
 
 bool CSQL::Connect()
 {
+	if(IsConnected())
+		return true;
+
+	str_copy(database, g_Config.m_SvSqlDatabase, sizeof(database));
+	str_copy(prefix, g_Config.m_SvSqlPrefix, sizeof(prefix));
+	str_copy(user, g_Config.m_SvSqlUser, sizeof(user));
+	str_copy(pass, g_Config.m_SvSqlPw, sizeof(pass));
+	str_copy(ip, g_Config.m_SvSqlIp, sizeof(ip));
+	port = g_Config.m_SvSqlPort;
+
+	dbg_msg("SQL", "Connecting with: User='%s', IP='%s', Port=%d, DB='%s'", user, ip, port, database);
+
 	try 
 	{
-		// Create connection
 		driver = get_driver_instance();
 		char buf[256];
 		str_format(buf, sizeof(buf), "tcp://%s:%d", ip, port);
 		connection = driver->connect(buf, user, pass);
-		
-		// Create Statement
-		statement = connection->createStatement();
-		
-		// Create database if not exists
-		str_format(buf, sizeof(buf), "CREATE DATABASE IF NOT EXISTS %s", database);
-		statement->execute(buf);
-		
-		// Connect to specific database
-		connection->setSchema(database);
-		dbg_msg("SQL", "SQL connection established");
 
+		connection->setSchema(database);
+
+		// Only recreate statement if needed
+		if (!statement)
+			statement = connection->createStatement();
+
+		dbg_msg("SQL", "SQL connection established");
 		return true;
 	} 
 	catch (sql::SQLException &e)
@@ -55,20 +52,57 @@ bool CSQL::Connect()
 	}
 }
 
+bool CSQL::IsConnected()
+{
+	try
+	{
+		return connection && connection->isValid();
+	}
+	catch (sql::SQLException &e)
+	{
+		return false;
+	}
+}
+
 void CSQL::Disconnect()
 {
 	try
 	{
-		delete connection;
+		if (statement)
+		{
+			delete statement;
+			statement = nullptr;
+		}
+
+		if (connection)
+		{
+			delete connection;
+			connection = nullptr;
+		}
+
 		dbg_msg("SQL", "SQL connection disconnected");
 	}
 	catch (sql::SQLException &e)
 	{
-		dbg_msg("SQL", "ERROR: No SQL connection (MySQL Error: %s)", e.what());
+		dbg_msg("SQL", "ERROR: Disconnect failed (MySQL Error: %s)", e.what());
 	}
 }
 
-// create tables... should be done only once
+void CSQL::CleanupSQL()
+{
+	if (results)
+	{
+		delete results;
+		results = nullptr;
+	}
+	if (statement)
+	{
+		delete statement;
+		statement = nullptr;
+	}
+}
+
+
 void CSQL::CreateTables()
 {
 	// create connection
@@ -101,9 +135,6 @@ void CSQL::CreateTables()
 			statement->execute(buf);
 
 			dbg_msg("SQL", "Tables were created successfully");
-
-			// delete statement
-			delete statement;
 		}
 		catch (sql::SQLException &e)
 		{
@@ -111,6 +142,7 @@ void CSQL::CreateTables()
 		}
 		
 		// disconnect from database
+		CleanupSQL();
 		Disconnect();
 	}	
 }
@@ -121,15 +153,13 @@ static void change_password_thread(void *user)
 	lock_wait(sql_lock);
 	
 	CSqlData *Data = (CSqlData *)user;
+	CGameContext *pGameServer = Data->m_SqlData->GameServer();
 	
 	// Connect to database
 	if(Data->m_SqlData->Connect())
 	{
 		try
 		{
-			// Connect to database
-			Data->m_SqlData->Connect();
-			
 			// check if Account exists
 			char buf[512];
 			str_format(buf, sizeof(buf), "SELECT * FROM %s_Account WHERE UserID=%d;", Data->m_SqlData->prefix, Data->UserID[Data->m_ClientID]);
@@ -156,15 +186,11 @@ static void change_password_thread(void *user)
 				
 				// Success
 				str_format(buf, sizeof(buf), "Successfully changed your password to '%s'.", Data->pass);
-				GameServer()->SendBroadcast(buf, Data->m_ClientID);
-				GameServer()->SendChatTarget(Data->m_ClientID, buf);
+				pGameServer->SendBroadcast(buf, Data->m_ClientID);
+				pGameServer->SendChatTarget(Data->m_ClientID, buf);
 			}
 			else
 				dbg_msg("SQL", "Account seems to be deleted");
-			
-			// delete statement and results
-			delete Data->m_SqlData->statement;
-			delete Data->m_SqlData->results;
 		}
 		catch (sql::SQLException &e)
 		{
@@ -175,8 +201,8 @@ static void change_password_thread(void *user)
 		Data->m_SqlData->Disconnect();
 	}
 	
+	Data->m_SqlData->CleanupSQL();
 	delete Data;
-	
 	lock_release(sql_lock);
 }
 
@@ -184,7 +210,7 @@ void CSQL::ChangePassword(int m_ClientID, const char* new_pass)
 {
 	CSqlData *tmp = new CSqlData();
 	tmp->m_ClientID = m_ClientID;
-	tmp->UserID[m_ClientID] = GameServer()->m_apPlayers[m_ClientID]->m_AccData.m_UserID;
+	tmp->UserID[m_ClientID] = m_pGameServer->m_apPlayers[m_ClientID]->m_AccData.m_UserID;
 	str_copy(tmp->pass, new_pass, sizeof(tmp->pass));
 	tmp->m_SqlData = this;
 	
@@ -197,53 +223,62 @@ void CSQL::ChangePassword(int m_ClientID, const char* new_pass)
 static void Create_Account_Thread(void *user)
 {
 	lock_wait(sql_lock);
-	
-	CSqlData *Data = (CSqlData *)user;
-	
-	if(GameServer()->m_apPlayers[Data->m_ClientID])
-	{
-		// Connect to database
-		if(Data->m_SqlData->Connect())
-		{
-			try
-			{
-				char buf[512];
-				str_format(buf, sizeof(buf), "SELECT * FROM %s_Account WHERE Username='%s';", Data->m_SqlData->prefix, Data->name);
-				Data->m_SqlData->results = Data->m_SqlData->statement->executeQuery(buf);
-				if(Data->m_SqlData->results->next())
-				{
-					// already exists
-					dbg_msg("SQL", "Account creation failed same username '%s'", Data->name);
-					GameServer()->SendChatTarget(Data->m_ClientID, "Failed to create an account. Please choose another username");
-				}
-				else
-				{
-					str_format(buf, sizeof(buf), "INSERT INTO %s_Account(Username, Password) VALUES ('%s', '%s');", 
-								Data->m_SqlData->prefix, 
-								Data->name, Data->pass);
-					
-					Data->m_SqlData->statement->execute(buf);
-					dbg_msg("SQL", "Created account '%s'", Data->name);
-					
-					GameServer()->SendChatTarget(Data->m_ClientID, "Acoount was created successfully, You may login now.");
-				}
 
-				// delete statement
-				delete Data->m_SqlData->statement;
-				delete Data->m_SqlData->results;
-			}
-			catch (sql::SQLException &e)
-			{
-				dbg_msg("SQL", "ERROR: Could not create Account (MySQL Error: %s)", e.what());
-			}
-			
-			// disconnect from database
-			Data->m_SqlData->Disconnect();
+	CSqlData *Data = (CSqlData *)user;
+	CGameContext *pGameServer = Data->m_SqlData->GameServer();
+
+	if (!pGameServer->m_apPlayers[Data->m_ClientID])
+	{
+		lock_release(sql_lock);
+		delete Data;
+		return;
+	}
+	if (!Data->m_SqlData->Connect())
+	{
+		pGameServer->SendChatTarget(Data->m_ClientID, "Failed to connect to the database.");
+		lock_release(sql_lock);
+		delete Data;
+		return;
+	}
+
+	try
+	{
+		char buf[512];
+		str_format(buf, sizeof(buf),
+			"SELECT * FROM %s_Account WHERE Username='%s';",
+			Data->m_SqlData->prefix, Data->name);
+
+		Data->m_SqlData->results = Data->m_SqlData->statement->executeQuery(buf);
+
+		if (Data->m_SqlData->results->next())
+		{
+			// Account already exists
+			dbg_msg("SQL", "Account creation failed: username '%s' already exists", Data->name);
+			pGameServer->SendChatTarget(Data->m_ClientID, "Account already exists. Please choose another username.");
+		}
+		else
+		{
+			// Create new account
+			str_format(buf, sizeof(buf),
+				"INSERT INTO %s_Account(Username, Password) VALUES ('%s', '%s');",
+				Data->m_SqlData->prefix, Data->name, Data->pass);
+
+			Data->m_SqlData->statement->execute(buf);
+
+			dbg_msg("SQL", "Created account '%s'", Data->name);
+			pGameServer->SendChatTarget(Data->m_ClientID, "Account created successfully. You can now login.");
 		}
 	}
-	
-	delete Data;
+	catch (sql::SQLException &e)
+	{
+		dbg_msg("SQL", "ERROR: Account creation failed (MySQL Error: %s)", e.what());
+		pGameServer->SendChatTarget(Data->m_ClientID, "An error occurred while creating your account.");
+	}
+
+	Data->m_SqlData->Disconnect();
+	Data->m_SqlData->CleanupSQL();
 	lock_release(sql_lock);
+	delete Data;
 }
 
 void CSQL::CreateAccount(const char* name, const char* pass, int m_ClientID)
@@ -262,9 +297,9 @@ void CSQL::CreateAccount(const char* name, const char* pass, int m_ClientID)
 
 bool CSQL::IsLoggedIn(int ClientID)
 {
-	if(!GameServer()->m_apPlayers[ClientID])
+	if(!m_pGameServer->m_apPlayers[ClientID])
 		return false;
-	return GameServer()->m_apPlayers[ClientID]->m_AccData.m_UserID;
+	return m_pGameServer->m_apPlayers[ClientID]->m_AccData.m_UserID;
 }
 
 static void Login_Thread(void *user)
@@ -272,13 +307,15 @@ static void Login_Thread(void *user)
 	lock_wait(sql_lock);
 	
 	CSqlData *Data = (CSqlData *)user;
+	CGameContext *pGameServer = Data->m_SqlData->GameServer();
 	
-	if(GameServer()->m_apPlayers[Data->m_ClientID])
+	if(pGameServer->m_apPlayers[Data->m_ClientID])
 	{
 		if(Data->m_SqlData->IsLoggedIn(Data->m_ClientID))
 		{
-			GameServer()->SendChatTarget(Data->m_ClientID, "You are already logged in.");
-		} 	else
+			pGameServer->SendChatTarget(Data->m_ClientID, "You are already logged in.");
+		} 	
+		else
 		{
 			if(Data->m_SqlData->Connect())
 			{
@@ -289,24 +326,20 @@ static void Login_Thread(void *user)
 					Data->m_SqlData->results = Data->m_SqlData->statement->executeQuery(buf);
 					if(Data->m_SqlData->results->next())
 					{
-						GameServer()->m_apPlayers[Data->m_ClientID]->m_AccData.m_UserID = Data->m_SqlData->results->getInt("UserID");
-						GameServer()->m_apPlayers[Data->m_ClientID]->m_AccData.m_ExpPoints = (float)Data->m_SqlData->results->getInt("Exp");
-						GameServer()->m_apPlayers[Data->m_ClientID]->m_AccData.m_Level = Data->m_SqlData->results->getInt("Level");			
+						pGameServer->m_apPlayers[Data->m_ClientID]->m_AccData.m_UserID = Data->m_SqlData->results->getInt("UserID");
+						pGameServer->m_apPlayers[Data->m_ClientID]->m_AccData.m_ExpPoints = (float)Data->m_SqlData->results->getInt("Exp");
+						pGameServer->m_apPlayers[Data->m_ClientID]->m_AccData.m_Level = Data->m_SqlData->results->getInt("Level");			
 
 						dbg_msg("SQL", "Account '%s' logged in sucessfully", Data->name);
-						GameServer()->SendChatTarget(Data->m_ClientID, "You are now logged in.");
-						GameServer()->m_apPlayers[Data->m_ClientID]->SetTeam(TEAM_RED);
+						pGameServer->SendChatTarget(Data->m_ClientID, "You are now logged in.");
+						// pGameServer->m_apPlayers[Data->m_ClientID]->SetTeam(TEAM_RED);
 					}
 					else
 					{
 						// no Account
 						dbg_msg("SQL", "Failed login attempt '%s'", Data->name);
-						GameServer()->SendChatTarget(Data->m_ClientID, "Wrong username or password");
+						pGameServer->SendChatTarget(Data->m_ClientID, "Wrong username or password");
 					}
-					
-					// delete statement and results
-					delete Data->m_SqlData->statement;
-					delete Data->m_SqlData->results;
 				}
 				catch (sql::SQLException &e)
 				{
@@ -319,8 +352,8 @@ static void Login_Thread(void *user)
 		}
 	}
 	
+	Data->m_SqlData->CleanupSQL();
 	delete Data;
-	
 	lock_release(sql_lock);
 }
 
@@ -342,16 +375,16 @@ void CSQL::Logout(int m_ClientID)
 {
 	if(!IsLoggedIn(m_ClientID))
 	{
-		GameServer()->SendChatTarget(m_ClientID, "Please login first.");
+		m_pGameServer->SendChatTarget(m_ClientID, "Please login first.");
 		return;
 	}
 
 	UpdatePlayer(m_ClientID);
-	GameServer()->m_apPlayers[m_ClientID]->m_AccData = {};
-	GameServer()->SendChatTarget(m_ClientID, "You have logged out.");
+	m_pGameServer->m_apPlayers[m_ClientID]->m_AccData = {};
+	m_pGameServer->SendChatTarget(m_ClientID, "You have logged out.");
 }
 
-bool CSQL::UpdateUser(int UserID, int Level, int Exp, int Money, char* UsernameBuf, int BufSize)
+bool CSQL::UpdateUser(int UserID, int Level, int Exp, char* UsernameBuf, int BufSize)
 {
 	char buf[512];
 
@@ -366,7 +399,6 @@ bool CSQL::UpdateUser(int UserID, int Level, int Exp, int Money, char* UsernameB
 	}
 	delete results;
 
-	// Update account data
 	str_format(buf, sizeof(buf),
 		"UPDATE %s_Account SET Level=%d, Exp=%d WHERE UserID=%d;",
 		prefix, Level, Exp, UserID);
@@ -402,7 +434,6 @@ static void Update_Thread(void *user)
 				Data->UserID[Data->m_ClientID],
 				Data->m_Level[Data->m_ClientID],
 				Data->m_ExpPoints[Data->m_ClientID],
-				Data->m_Money[Data->m_ClientID],
 				username, sizeof(username)
 			);
 
@@ -410,8 +441,6 @@ static void Update_Thread(void *user)
 				dbg_msg("SQL", "Account '%s' was saved successfully", username);
 			else
 				dbg_msg("SQL", "Account seems to be deleted");
-
-			delete Data->m_SqlData->statement;
 		}
 		catch (sql::SQLException &e)
 		{
@@ -421,20 +450,21 @@ static void Update_Thread(void *user)
 		Data->m_SqlData->Disconnect();
 	}
 
+	Data->m_SqlData->CleanupSQL();
 	delete Data;
 	lock_release(sql_lock);
 }
 
 void CSQL::UpdatePlayer(int ClientID)
 {
-	if (!GameServer()->m_apPlayers[ClientID] || !IsLoggedIn(ClientID))
+	if (!m_pGameServer->m_apPlayers[ClientID] || !IsLoggedIn(ClientID))
 		return;
 
 	CSqlData *tmp = new CSqlData();
 	tmp->m_ClientID = ClientID;
-	tmp->UserID[ClientID] = GameServer()->m_apPlayers[ClientID]->m_AccData.m_UserID;
-	tmp->m_ExpPoints[ClientID] = GameServer()->m_apPlayers[ClientID]->m_AccData.m_ExpPoints;
-	tmp->m_Level[ClientID] = GameServer()->m_apPlayers[ClientID]->m_AccData.m_Level;
+	tmp->UserID[ClientID] = m_pGameServer->m_apPlayers[ClientID]->m_AccData.m_UserID;
+	tmp->m_ExpPoints[ClientID] = m_pGameServer->m_apPlayers[ClientID]->m_AccData.m_ExpPoints;
+	tmp->m_Level[ClientID] = m_pGameServer->m_apPlayers[ClientID]->m_AccData.m_Level;
 	tmp->m_SqlData = this;
 
 	void *thread = thread_init(Update_Thread, tmp);
@@ -459,7 +489,7 @@ void CSQL::UpdatePlayers()
 
 		for (int i = 0; i < MAX_CLIENTS; ++i)
 		{
-			CPlayer *pPlayer = GameServer()->m_apPlayers[i];
+			CPlayer *pPlayer = m_pGameServer->m_apPlayers[i];
 			if (!pPlayer || !pPlayer->m_AccData.m_UserID)
 				continue;
 
@@ -468,15 +498,13 @@ void CSQL::UpdatePlayers()
 			int Exp = pPlayer->m_AccData.m_ExpPoints;
 
 			char acc_name[32];
-			bool success = UpdateUser(UserID, Level, Exp, 0, acc_name, sizeof(acc_name));
+			bool success = UpdateUser(UserID, Level, Exp, acc_name, sizeof(acc_name));
 
 			if (success)
 				dbg_msg("SQL", "Account '%s' was saved successfully", acc_name);
 			else
 				dbg_msg("SQL", "Account for UserID=%d seems to be deleted", UserID);
 		}
-
-		delete statement;
 	}
 	catch (sql::SQLException &e)
 	{
@@ -484,6 +512,7 @@ void CSQL::UpdatePlayers()
 	}
 
 	Disconnect();
+	CleanupSQL();
 	lock_release(sql_lock);
 }
 
@@ -493,8 +522,9 @@ static void Create_Clan_Thread(void *user)
 	lock_wait(sql_lock);
 	
 	CSqlData *Data = (CSqlData *)user;
+	CGameContext *pGameServer = Data->m_SqlData->GameServer();
 	
-	if(GameServer()->m_apPlayers[Data->m_ClientID])
+	if(pGameServer->m_apPlayers[Data->m_ClientID])
 	{
 		// Connect to database
 		if(Data->m_SqlData->Connect())
@@ -508,7 +538,7 @@ static void Create_Clan_Thread(void *user)
 				{
 					// already exists
 					dbg_msg("SQL", "Clan creation failed same name '%s'", Data->name);
-					GameServer()->SendChatTarget(Data->m_ClientID, "Failed to create an clan. Please choose another clanname");
+					pGameServer->SendChatTarget(Data->m_ClientID, "Failed to create a clan. Please choose another clanname");
 				}
 				else
 				{
@@ -519,12 +549,8 @@ static void Create_Clan_Thread(void *user)
 					Data->m_SqlData->statement->execute(buf);
 					dbg_msg("SQL", "Created clan '%s'", Data->name);
 					
-					GameServer()->SendChatTarget(Data->m_ClientID, "Clan was created successfully");
+					pGameServer->SendChatTarget(Data->m_ClientID, "Clan was created successfully");
 				}
-
-				// delete statement
-				delete Data->m_SqlData->statement;
-				delete Data->m_SqlData->results;
 			}
 			catch (sql::SQLException &e)
 			{
@@ -536,6 +562,7 @@ static void Create_Clan_Thread(void *user)
 		}
 	}
 	
+	Data->m_SqlData->CleanupSQL();
 	delete Data;
 	lock_release(sql_lock);
 }
